@@ -1,7 +1,8 @@
 "use strict";
 
 import environment from './lib/environment.js';
-// import config from './lib/config.js';
+import config from './lib/config.js';
+console.log(config);
 // import './lib/initialize.js';
 // import Server from './core/server/Server.js';
 // import BrowserPool from './core/browser/BrowserPool.js';
