@@ -1,5 +1,7 @@
-import conversation from "./conversation.js";
+import conversation from './conversation.js';
+import user from './user.js';
 
 export default [
-    conversation
+    conversation,
+    user
 ];
