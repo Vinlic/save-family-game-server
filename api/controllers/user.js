@@ -1,6 +1,6 @@
 import { Ticket } from '../models/user.js';
-import redis from '../lib/redis.js';
-import util from '../lib/util.js';
+import redis from '../../lib/redis.js';
+import util from '../../lib/util.js';
 
 export default {
 
@@ -21,8 +21,16 @@ export default {
         return ticket;
     },
 
-    checkTicket() {
-
+    /**
+     * 校验凭据
+     * 
+     * @param {Ticket} ticket 凭据 
+     */
+    async checkTicket(ticket) {
+        const data = await redis.hmget(`ticket:${ticket.id}`);
+        // if(!data)
+        //     throw new 
+        const ticket = new Ticket(data);
     }
 
 }

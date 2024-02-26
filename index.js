@@ -4,7 +4,7 @@ import environment from './lib/environment.js';
 import config from './lib/config.js';
 import './lib/initialize.js';
 import Server from './lib/Server.js';
-import routes from './routes/index.js';
+import routes from './api/routes/index.js';
 import logger from './lib/logger.js';
 import util from './lib/util.js';
 
