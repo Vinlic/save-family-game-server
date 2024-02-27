@@ -15,10 +15,9 @@ export default {
     post: {
 
         '/create': async request => {
-            const { ticket } = request.body;
-            await user.checkTicket();
+            const ticket = await user.checkTicket(request);
             conversation.create({
-                ipAddress: request.remoteIP
+                ticketId: ticket.id
             });
         }
 
