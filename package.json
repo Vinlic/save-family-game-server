@@ -1,11 +1,20 @@
 {
   "name": "game-server",
   "version": "0.0.1",
-  "description": "",
+  "description": "Game Server",
   "type": "module",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "directories": {
+    "dist": "dist"
+  },
+  "files": [
+    "dist/"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsup src/index.ts --format cjs,esm --sourcemap --dts --publicDir public --watch --onSuccess \"node dist/index.js\"",
+    "build": "tsup src/index.ts --format cjs,esm --sourcemap --dts --clean --publicDir public"
   },
   "author": "Vinlic",
   "license": "ISC",
@@ -31,5 +40,11 @@
     "uuid": "^9.0.1",
     "yaml": "^2.3.4",
     "zhipuai-sdk-nodejs-v4": "^0.1.10"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.202",
+    "@types/mime": "^3.0.4",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3"
   }
 }
