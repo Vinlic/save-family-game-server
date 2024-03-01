@@ -1,12 +1,12 @@
 import _ from 'lodash';
 
-import { Ticket } from '../models/user.js';
-import redis from '../../lib/redis.js';
-import EX from '../consts/exceptions.js';
-import APIException from '../../lib/exceptions/APIException.js';
-import Request from '../../lib/request/Request.js';
-import logger from '../../lib/logger.js';
-import util from '../../lib/util.js';
+import { Ticket } from '@/api/models/user.ts';
+import EX from '@/api/consts/exceptions.ts';
+import APIException from '@/lib/exceptions/APIException.ts';
+import Request from '@/lib/request/Request.js';
+import redis from '@/lib/redis.ts';
+import logger from '@/lib/logger.ts';
+import util from '@/lib/util.ts';
 
 const blockedIPAddresses = [];
 
@@ -20,7 +20,7 @@ export default {
      * @param {string} options.ipAddress IP地址
      */
     async createTicket(options = {}) {
-        const { username, ipAddress } = options;
+        const { username, ipAddress } = options as any;
         const ticket = new Ticket({
             username,
             ipAddress

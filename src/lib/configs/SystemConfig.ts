@@ -20,7 +20,7 @@ export default class SystemConfig {
     /** 日志目录路径 */
     logDir: string;
     /** 日志写入间隔（毫秒） */
-    logWriteInterval: string;
+    logWriteInterval: number;
     /** 日志文件有效期（毫秒） */
     logFileExpires: number;
     /** 公共目录路径 */
@@ -29,9 +29,11 @@ export default class SystemConfig {
     tmpFileExpires: number;
     /** 请求体配置 */
     requestBody: any;
+    /** 是否调试模式 */
+    debug: boolean;
 
     constructor(options?: any) {
-        const { requestLog, tmpDir, logDir, logWriteInterval, logFileExpires, publicDir, tmpFileExpires, requestBody } = options || {};
+        const { requestLog, tmpDir, logDir, logWriteInterval, logFileExpires, publicDir, tmpFileExpires, requestBody, debug } = options || {};
         this.requestLog = _.defaultTo(requestLog, false);
         this.tmpDir = _.defaultTo(tmpDir, './tmp');
         this.logDir = _.defaultTo(logDir, './logs');
@@ -52,6 +54,7 @@ export default class SystemConfig {
             multipart: true,
             parsedMethods: ['POST', 'PUT', 'PATCH']
         });
+        this.debug = _.defaultTo(debug, true);
     }
 
     get rootDirPath() {
