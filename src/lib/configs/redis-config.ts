@@ -31,7 +31,6 @@ export class RedisConfig {
     db: number;
 
     constructor(options?: any) {
-        console.log('啊啊啊啊');
         const { host, port, password, name, sentinels, lazyConnect, sentinelRetryTimeout, db } = options || {};
         this.host = _.defaultTo(host, '127.0.0.1');
         this.port = _.defaultTo(port, 6379);
@@ -46,7 +45,6 @@ export class RedisConfig {
     static load() {
         if(!fs.pathExistsSync(CONFIG_PATH)) return new RedisConfig();
         const data = yaml.parse(fs.readFileSync(CONFIG_PATH).toString());
-        console.log(data, '啊啊');
         return new RedisConfig(data);
     }
 

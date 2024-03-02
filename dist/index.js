@@ -510,8 +510,8 @@ import yaml3 from "yaml";
 import _5 from "lodash";
 var CONFIG_PATH3 = path5.join(path5.resolve(), "configs/", environment_default.env, "/api.yml");
 var ChatCompletionConfig = class _ChatCompletionConfig {
-  /** 驱动名称 */
-  driver;
+  /** 服务提供商 */
+  provider;
   /** 调用地址 */
   url;
   /** API密钥 */
@@ -522,6 +522,8 @@ var ChatCompletionConfig = class _ChatCompletionConfig {
   model;
   /** 上下文长度 */
   contextLength;
+  /** 单次最大token数 */
+  maxToken;
   /** 并行请求数 */
   concurrencyLimit;
   /** 等待响应超时时间（毫秒） */
@@ -529,8 +531,8 @@ var ChatCompletionConfig = class _ChatCompletionConfig {
   /** 网络代理 */
   proxyAgent;
   constructor(options) {
-    const { driver, url, apiKey, apiVersion, model, contextLength, concurrencyLimit, waitReponseTimeout, proxyAgent } = options || {};
-    this.driver = _5.defaultTo(driver, "zhipuai");
+    const { provider, url, apiKey, apiVersion, model, contextLength, concurrencyLimit, waitReponseTimeout, proxyAgent } = options || {};
+    this.provider = _5.defaultTo(provider, "zhipuai");
     this.url = _5.defaultTo(url, "https://open.bigmodel.cn/api/paas/v4/chat/completions");
     this.apiKey = _5.defaultTo(apiKey, "");
     this.apiVersion = _5.defaultTo(apiVersion, "");
@@ -587,7 +589,6 @@ var RedisConfig = class _RedisConfig {
   /** 连接数据库序号 */
   db;
   constructor(options) {
-    console.log("\u554A\u554A\u554A\u554A");
     const { host, port, password, name, sentinels, lazyConnect, sentinelRetryTimeout, db } = options || {};
     this.host = _6.defaultTo(host, "127.0.0.1");
     this.port = _6.defaultTo(port, 6379);
@@ -602,7 +603,6 @@ var RedisConfig = class _RedisConfig {
     if (!fs6.pathExistsSync(CONFIG_PATH4))
       return new _RedisConfig();
     const data = yaml4.parse(fs6.readFileSync(CONFIG_PATH4).toString());
-    console.log(data, "\u554A\u554A");
     return new _RedisConfig(data);
   }
 };
@@ -1181,19 +1181,44 @@ var Server = class {
 };
 var server_default = new Server();
 
-// src/api/controllers/conversation.ts
-var conversation_default = {
-  /**
-   * 
-   * 
-   * @param {Object} options 选项
-   * @param {string} options.username 用户名称
-   * @param {string} options.ipAddress IP地址
-   */
-  create(options = {}) {
-    const {} = options;
+// src/lib/chat.ts
+import ZhipuAI from "zhipuai-sdk-nodejs-v4";
+var Chat = class {
+  client;
+  constructor() {
+    this.client = new ZhipuAI({
+      apiKey: config_default.api.chatCompletion.apiKey
+    });
+  }
+  async completions() {
+    const { model } = config_default.api.chatCompletion;
+    const result = await this.client.createCompletions({
+      model,
+      messages: [
+        {
+          "role": "user",
+          "content": "\u4F60\u597D"
+        }
+      ]
+    });
+    console.log(result);
   }
 };
+var chat_default = new Chat();
+
+// src/api/routes/conversation.ts
+var conversation_default = {
+  prefix: "/conversation",
+  get: {},
+  post: {
+    "/create": async (request) => {
+      await chat_default.completions();
+    }
+  }
+};
+
+// src/api/routes/user.ts
+import _16 from "lodash";
 
 // src/api/controllers/user.ts
 import _15 from "lodash";
@@ -1314,22 +1339,7 @@ var user_default = {
   }
 };
 
-// src/api/routes/conversation.ts
-var conversation_default2 = {
-  prefix: "/conversation",
-  get: {},
-  post: {
-    "/create": async (request) => {
-      const ticket = await user_default.checkTicket(request);
-      conversation_default.create({
-        ticketId: ticket.id
-      });
-    }
-  }
-};
-
 // src/api/routes/user.ts
-import _16 from "lodash";
 var user_default2 = {
   prefix: "/user",
   post: {
@@ -1347,7 +1357,7 @@ var user_default2 = {
 
 // src/api/routes/index.ts
 var routes_default = [
-  conversation_default2,
+  conversation_default,
   user_default2
 ];
 

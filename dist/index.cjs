@@ -534,8 +534,8 @@ var import_yaml3 = __toESM(require("yaml"), 1);
 var import_lodash5 = __toESM(require("lodash"), 1);
 var CONFIG_PATH3 = import_path5.default.join(import_path5.default.resolve(), "configs/", environment_default.env, "/api.yml");
 var ChatCompletionConfig = class _ChatCompletionConfig {
-  /** 驱动名称 */
-  driver;
+  /** 服务提供商 */
+  provider;
   /** 调用地址 */
   url;
   /** API密钥 */
@@ -546,6 +546,8 @@ var ChatCompletionConfig = class _ChatCompletionConfig {
   model;
   /** 上下文长度 */
   contextLength;
+  /** 单次最大token数 */
+  maxToken;
   /** 并行请求数 */
   concurrencyLimit;
   /** 等待响应超时时间（毫秒） */
@@ -553,8 +555,8 @@ var ChatCompletionConfig = class _ChatCompletionConfig {
   /** 网络代理 */
   proxyAgent;
   constructor(options) {
-    const { driver, url, apiKey, apiVersion, model, contextLength, concurrencyLimit, waitReponseTimeout, proxyAgent } = options || {};
-    this.driver = import_lodash5.default.defaultTo(driver, "zhipuai");
+    const { provider, url, apiKey, apiVersion, model, contextLength, concurrencyLimit, waitReponseTimeout, proxyAgent } = options || {};
+    this.provider = import_lodash5.default.defaultTo(provider, "zhipuai");
     this.url = import_lodash5.default.defaultTo(url, "https://open.bigmodel.cn/api/paas/v4/chat/completions");
     this.apiKey = import_lodash5.default.defaultTo(apiKey, "");
     this.apiVersion = import_lodash5.default.defaultTo(apiVersion, "");
@@ -611,7 +613,6 @@ var RedisConfig = class _RedisConfig {
   /** 连接数据库序号 */
   db;
   constructor(options) {
-    console.log("\u554A\u554A\u554A\u554A");
     const { host, port, password, name, sentinels, lazyConnect, sentinelRetryTimeout, db } = options || {};
     this.host = import_lodash6.default.defaultTo(host, "127.0.0.1");
     this.port = import_lodash6.default.defaultTo(port, 6379);
@@ -626,7 +627,6 @@ var RedisConfig = class _RedisConfig {
     if (!import_fs_extra6.default.pathExistsSync(CONFIG_PATH4))
       return new _RedisConfig();
     const data = import_yaml4.default.parse(import_fs_extra6.default.readFileSync(CONFIG_PATH4).toString());
-    console.log(data, "\u554A\u554A");
     return new _RedisConfig(data);
   }
 };
@@ -1205,19 +1205,44 @@ var Server = class {
 };
 var server_default = new Server();
 
-// src/api/controllers/conversation.ts
-var conversation_default = {
-  /**
-   * 
-   * 
-   * @param {Object} options 选项
-   * @param {string} options.username 用户名称
-   * @param {string} options.ipAddress IP地址
-   */
-  create(options = {}) {
-    const {} = options;
+// src/lib/chat.ts
+var import_zhipuai_sdk_nodejs_v4 = __toESM(require("zhipuai-sdk-nodejs-v4"), 1);
+var Chat = class {
+  client;
+  constructor() {
+    this.client = new import_zhipuai_sdk_nodejs_v4.default({
+      apiKey: config_default.api.chatCompletion.apiKey
+    });
+  }
+  async completions() {
+    const { model } = config_default.api.chatCompletion;
+    const result = await this.client.createCompletions({
+      model,
+      messages: [
+        {
+          "role": "user",
+          "content": "\u4F60\u597D"
+        }
+      ]
+    });
+    console.log(result);
   }
 };
+var chat_default = new Chat();
+
+// src/api/routes/conversation.ts
+var conversation_default = {
+  prefix: "/conversation",
+  get: {},
+  post: {
+    "/create": async (request) => {
+      await chat_default.completions();
+    }
+  }
+};
+
+// src/api/routes/user.ts
+var import_lodash16 = __toESM(require("lodash"), 1);
 
 // src/api/controllers/user.ts
 var import_lodash15 = __toESM(require("lodash"), 1);
@@ -1338,22 +1363,7 @@ var user_default = {
   }
 };
 
-// src/api/routes/conversation.ts
-var conversation_default2 = {
-  prefix: "/conversation",
-  get: {},
-  post: {
-    "/create": async (request) => {
-      const ticket = await user_default.checkTicket(request);
-      conversation_default.create({
-        ticketId: ticket.id
-      });
-    }
-  }
-};
-
 // src/api/routes/user.ts
-var import_lodash16 = __toESM(require("lodash"), 1);
 var user_default2 = {
   prefix: "/user",
   post: {
@@ -1371,7 +1381,7 @@ var user_default2 = {
 
 // src/api/routes/index.ts
 var routes_default = [
-  conversation_default2,
+  conversation_default,
   user_default2
 ];
 

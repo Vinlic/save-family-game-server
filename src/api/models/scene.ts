@@ -1,11 +1,8 @@
-export interface Message {
-    type: string;
-    roleAvatarResId: string;
-    roleName: string,
-    content: string;
-}
+import _ from 'lodash';
 
-interface SceneOptions {
+import type { Message } from './conversation.ts';
+
+export interface SceneOptions {
     id: string;
     name: string;
     description: string;
@@ -19,14 +16,14 @@ export class Scene {
     name: string;
     description: string;
     coverResId: string;
-    initialMessages: Message[] = [];
+    initialMessages: Message[];
 
     constructor(options: SceneOptions) {
         this.id = options.id;
         this.name = options.name;
         this.description = options.description;
         this.coverResId = options.coverResId;
-        this.initialMessages = options.initialMessages || [];
+        this.initialMessages = _.defaultTo(options.initialMessages, []);
     }
 
 }

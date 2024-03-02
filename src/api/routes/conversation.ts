@@ -1,6 +1,7 @@
 import Request from '@/lib/request/Request.ts';
 import conversation from '@/api/controllers/conversation.ts';
 import user from '@/api/controllers/user.ts';
+import chat from '@/lib/chat.ts';
 import util from '@/lib/util.ts';
 
 export default {
@@ -15,10 +16,11 @@ export default {
     post: {
 
         '/create': async (request: Request) => {
-            const ticket = await user.checkTicket(request);
-            conversation.create({
-                ticketId: ticket.id
-            });
+            // const ticket = await user.checkTicket(request);
+            // conversation.create({
+            //     ticketId: ticket.id
+            // });
+            await chat.completions();
         }
 
     }

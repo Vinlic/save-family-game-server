@@ -17,8 +17,8 @@ export interface ProxyAgent {
 
 export class ChatCompletionConfig {
 
-    /** 驱动名称 */
-    driver: string;
+    /** 服务提供商 */
+    provider: string;
     /** 调用地址 */
     url: string;
     /** API密钥 */
@@ -29,6 +29,8 @@ export class ChatCompletionConfig {
     model: string;
     /** 上下文长度 */
     contextLength: number;
+    /** 单次最大token数 */
+    maxToken: number;
     /** 并行请求数 */
     concurrencyLimit: number;
     /** 等待响应超时时间（毫秒） */
@@ -37,8 +39,8 @@ export class ChatCompletionConfig {
     proxyAgent: ProxyAgent | null;
 
     constructor(options?: any) {
-        const { driver, url, apiKey, apiVersion, model, contextLength, concurrencyLimit, waitReponseTimeout, proxyAgent } = options || {};
-        this.driver = _.defaultTo(driver, 'zhipuai');
+        const { provider, url, apiKey, apiVersion, model, contextLength, concurrencyLimit, waitReponseTimeout, proxyAgent } = options || {};
+        this.provider = _.defaultTo(provider, 'zhipuai');
         this.url = _.defaultTo(url, 'https://open.bigmodel.cn/api/paas/v4/chat/completions');
         this.apiKey = _.defaultTo(apiKey, '');
         this.apiVersion = _.defaultTo(apiVersion, '');

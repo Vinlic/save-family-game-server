@@ -1,4 +1,4 @@
-export class Message {
+export interface Message {
     type: string;
     id: string;
     roleAvatarResId: string;
@@ -7,5 +7,9 @@ export class Message {
 }
 
 export class Conversation {
+    type: string;
     id: string;
+    name: string;
+    messages: Message[];
+    fromTicketId: string;
 }
