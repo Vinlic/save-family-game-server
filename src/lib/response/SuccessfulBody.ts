@@ -4,7 +4,7 @@ import Body from './Body.ts';
 
 export default class SuccessfulBody extends Body {
     
-    constructor(data, message) {
+    constructor(data: any, message?: string) {
         super({
             code: 0,
             message: _.defaultTo(message, "OK"),

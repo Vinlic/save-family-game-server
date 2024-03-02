@@ -15,6 +15,7 @@ import { CronJob } from 'cron';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 
+import type { ProxyAgent } from './configs/api-config.ts';
 import HTTP_STATUS_CODE from './http-status-codes.ts';
 
 const LOGO_TEXT = Buffer.from("ICAgX19fX19fXyBfICAgX19fX19fICBfX19fX19fICAgX18gIF9fX19fX19fX19fICBfXwogIC8gX18vIF8gfCB8IC8gLyBfXy8gLyBfXy8gXyB8IC8gIHwvICAvICBfLyAvXCBcLyAvCiBfXCBcLyBfXyB8IHwvIC8gXy8gIC8gXy8vIF9fIHwvIC98Xy8gLy8gLy8gL19fXCAgLyAKL19fXy9fLyB8X3xfX18vX19fLyAvXy8gL18vIHxfL18vICAvXy9fX18vX19fXy8vXy8gIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg", "base64").toString();
@@ -23,56 +24,52 @@ const autoIdMap = new Map();
 
 const util = {
 
-    is2DArrays(value) {
+    is2DArrays(value: any) {
         return _.isArray(value) && (!value[0] || (_.isArray(value[0]) && _.isArray(value[value.length - 1])));
     },
 
     uuid: (separator = true) => separator ? uuid() : uuid().replace(/\-/g, ""),
 
-    autoId: (prefix = "") => {
+    autoId: (prefix = '') => {
         let index = autoIdMap.get(prefix);
         if(index > 999999) index = 0;  //超过最大数字则重置为0
         autoIdMap.set(prefix, (index || 0) + 1);
         return `${prefix}${index || 1}`;
     },
 
-    ignoreJSONParse(value) {
+    ignoreJSONParse(value: string) {
         const result = _.attempt(() => JSON.parse(value));
         if(_.isError(result))
             return null;
         return result;
     },
 
-    generateRandomString(options) {
+    generateRandomString(options: any): string {
         return randomstring.generate(options);
     },
 
-    getResponseContentType(value) {
+    getResponseContentType(value: any): string | null {
         return value.headers ? (value.headers["content-type"] || value.headers["Content-Type"]) : null;
     },
 
-    mimeToExtension(value) {
+    mimeToExtension(value: string) {
         let extension = mime.getExtension(value);
         if(extension == "mpga")
             return "mp3";
         return extension;
     },
 
-    extractURLExtension(value) {
+    extractURLExtension(value: string) {
         const extname = path.extname(new URL(value).pathname);
         return extname.substring(1).toLowerCase();
     },
 
-    createCronJob(cronPatterns, callback) {
+    createCronJob(cronPatterns: any, callback?: Function) {
         if(!_.isFunction(callback)) throw new Error("callback must be an Function");
         return new CronJob(cronPatterns, () => callback(), null, false, "Asia/Shanghai");
     },
 
-    generateSSEData(event, data, retry) {
-        return `event: ${event || "message"}\ndata: ${(data || "").replace(/\n/g, "\\n").replace(/\s/g, "\\s")}\nretry: ${retry || 3000}\n\n`;
-    },
-
-    createProxyAgent(options: any = {}) {
+    createProxyAgent(options: ProxyAgent) {
         const { enable, protocol, host, port } = options;
         if(enable === false)
             return null;
@@ -91,7 +88,7 @@ const util = {
         return dateFormat(date, format);
     },
 
-    getIPAddressesByIPv4() {
+    getIPAddressesByIPv4(): string[] {
         const interfaces = os.networkInterfaces();
         const addresses = [];
         for (let name in interfaces) {
@@ -103,7 +100,7 @@ const util = {
         return addresses;
     },
 
-    getMACAddressesByIPv4() {
+    getMACAddressesByIPv4(): string[] {
         const interfaces = os.networkInterfaces();
         const addresses = [];
         for (let name in interfaces) {
@@ -131,11 +128,11 @@ const util = {
         return _.isNumber(value) && value > 0 && value < 65536;
     },
 
-    isReadStream(value) {
+    isReadStream(value): boolean {
         return value && (value instanceof Readable || "readable" in value || value.readable);
     },
 
-    isWriteStream(value) {
+    isWriteStream(value): boolean {
         return value && (value instanceof Writable || "writable" in value || value.writable);
     },
 
@@ -159,17 +156,17 @@ const util = {
         return /^data:image/.test(value);
     },
 
-    extractBASE64ImageFormat(value) {
+    extractBASE64ImageFormat(value): string | null {
         const match = value.trim().match(/^data:image\/(.+);base64,/);
         if(!match) return null;
         return match[1];
     },
 
-    removeBASE64ImageHeader(value) {
+    removeBASE64ImageHeader(value): string {
         return value.replace(/^data:image\/(.+);base64,/, "");
     },
 
-    isDataString(value) {
+    isDataString(value): boolean {
         return /^(base64|json):/.test(value);
     },
 
@@ -239,7 +236,7 @@ const util = {
         return `${Math.floor(milliseconds / 1000 / 60)}m${Math.floor(milliseconds / 1000 % 60)}s`;
     },
 
-    rgbToHex(r, g, b) {
+    rgbToHex(r, g, b): string {
         return ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
     },
 
@@ -256,8 +253,8 @@ const util = {
         return _.isBuffer(value) ? CRC32.buf(value) : CRC32.str(value);
     },
 
-    arrayParse(value) {
-        _.isArray(value) ? value : [value];
+    arrayParse(value): any[] {
+        return _.isArray(value) ? value : [value];
     },
 
     printLogo() {

@@ -1,3 +1,8 @@
+import assert from 'assert';
+
+import _ from 'lodash';
+
+import Request from '@/lib/request/Request.ts';
 import user from '@/api/controllers/user.ts';
 
 export default {
@@ -6,16 +11,15 @@ export default {
 
     post: {
         
-        '/register': async request => {
+        '/register': async (request: Request) => {
             const { username } = request.body;
+            request.validate('body.username', _.isString);
             const ticket = await user.createTicket({
                 username,
                 ipAddress: request.remoteIP
             });
             return ticket;
         },
-
-        
 
     }
 

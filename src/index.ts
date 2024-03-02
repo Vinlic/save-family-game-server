@@ -29,7 +29,7 @@ const startupTime = performance.now();
 })()
   .then(() =>
     logger.success(
-      `Service startup completed (${parseFloat((performance.now() - startupTime).toFixed(2))}ms)`
+      `Service startup completed (${Math.floor(performance.now() - startupTime)}ms)`
     )
   )
   .catch((err) => console.error(err));

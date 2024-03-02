@@ -37,7 +37,7 @@ var environment_default = new Environment({
   package: JSON.parse(fs.readFileSync(path.join(path.resolve(), "package.json")).toString())
 });
 
-// src/lib/configs/ServiceConfig.ts
+// src/lib/configs/service-config.ts
 import path3 from "path";
 import fs3 from "fs-extra";
 import yaml from "yaml";
@@ -212,14 +212,7 @@ var util = {
       throw new Error("callback must be an Function");
     return new CronJob(cronPatterns, () => callback(), null, false, "Asia/Shanghai");
   },
-  generateSSEData(event, data, retry) {
-    return `event: ${event || "message"}
-data: ${(data || "").replace(/\n/g, "\\n").replace(/\s/g, "\\s")}
-retry: ${retry || 3e3}
-
-`;
-  },
-  createProxyAgent(options = {}) {
+  createProxyAgent(options) {
     const { enable, protocol, host, port } = options;
     if (enable === false)
       return null;
@@ -373,7 +366,7 @@ retry: ${retry || 3e3}
     return _2.isBuffer(value) ? CRC32.buf(value) : CRC32.str(value);
   },
   arrayParse(value) {
-    _2.isArray(value) ? value : [value];
+    return _2.isArray(value) ? value : [value];
   },
   printLogo() {
     console.log(LOGO_TEXT["brightBlue"]);
@@ -390,7 +383,7 @@ retry: ${retry || 3e3}
 };
 var util_default = util;
 
-// src/lib/configs/ServiceConfig.ts
+// src/lib/configs/service-config.ts
 var CONFIG_PATH = path3.join(path3.resolve(), "configs/", environment_default.env, "/service.yml");
 var ServiceConfig = class _ServiceConfig {
   /** 服务名称 */
@@ -430,25 +423,17 @@ var ServiceConfig = class _ServiceConfig {
   get publicDirUrl() {
     return `http://127.0.0.1:${this.port}/public`;
   }
-  static load(filePath) {
-    filePath = filePath || CONFIG_PATH;
+  static load() {
     const external = _3.pickBy(environment_default, (v, k) => ["name", "host", "port"].includes(k) && !_3.isUndefined(v));
-    if (!fs3.pathExistsSync(filePath))
+    if (!fs3.pathExistsSync(CONFIG_PATH))
       return new _ServiceConfig(external);
-    const data = yaml.parse(fs3.readFileSync(filePath).toString());
+    const data = yaml.parse(fs3.readFileSync(CONFIG_PATH).toString());
     return new _ServiceConfig({ ...data, ...external });
   }
-  static create(value) {
-    if (_3.isUndefined(value))
-      return value;
-    return _ServiceConfig.isInstance(value) ? value : new _ServiceConfig(value);
-  }
-  static isInstance(value) {
-    return value instanceof _ServiceConfig;
-  }
 };
+var service_config_default = ServiceConfig.load();
 
-// src/lib/configs/SystemConfig.ts
+// src/lib/configs/system-config.ts
 import path4 from "path";
 import fs4 from "fs-extra";
 import yaml2 from "yaml";
@@ -509,31 +494,21 @@ var SystemConfig = class _SystemConfig {
   get publicDirPath() {
     return path4.resolve(this.publicDir);
   }
-  static load(filePath) {
-    filePath = filePath || CONFIG_PATH2;
-    if (!fs4.pathExistsSync(filePath))
+  static load() {
+    if (!fs4.pathExistsSync(CONFIG_PATH2))
       return new _SystemConfig();
-    const data = yaml2.parse(fs4.readFileSync(filePath).toString());
+    const data = yaml2.parse(fs4.readFileSync(CONFIG_PATH2).toString());
     return new _SystemConfig(data);
   }
-  static create(value) {
-    if (_4.isUndefined(value))
-      return value;
-    return _SystemConfig.isInstance(value) ? value : new _SystemConfig(value);
-  }
-  static isInstance(value) {
-    return value instanceof _SystemConfig;
-  }
 };
+var system_config_default = SystemConfig.load();
 
-// src/lib/configs/APIConfig.ts
+// src/lib/configs/api-config.ts
 import path5 from "path";
 import fs5 from "fs-extra";
 import yaml3 from "yaml";
-import _6 from "lodash";
-
-// src/lib/configs/ChatCompletionConfig.ts
 import _5 from "lodash";
+var CONFIG_PATH3 = path5.join(path5.resolve(), "configs/", environment_default.env, "/api.yml");
 var ChatCompletionConfig = class _ChatCompletionConfig {
   /** 驱动名称 */
   driver;
@@ -572,9 +547,6 @@ var ChatCompletionConfig = class _ChatCompletionConfig {
     return value instanceof _ChatCompletionConfig;
   }
 };
-
-// src/lib/configs/APIConfig.ts
-var CONFIG_PATH3 = path5.join(path5.resolve(), "configs/", environment_default.env, "/api.yml");
 var APIConfig = class _APIConfig {
   /** 聊天补全配置 */
   chatCompletion;
@@ -582,28 +554,20 @@ var APIConfig = class _APIConfig {
     const { chatCompletion } = options || {};
     this.chatCompletion = ChatCompletionConfig.create(chatCompletion);
   }
-  static load(filePath) {
-    filePath = filePath || CONFIG_PATH3;
-    if (!fs5.pathExistsSync(filePath))
+  static load() {
+    if (!fs5.pathExistsSync(CONFIG_PATH3))
       return new _APIConfig();
-    const data = yaml3.parse(fs5.readFileSync(filePath).toString());
+    const data = yaml3.parse(fs5.readFileSync(CONFIG_PATH3).toString());
     return new _APIConfig(data);
   }
-  static create(value) {
-    if (_6.isUndefined(value))
-      return value;
-    return _APIConfig.isInstance(value) ? value : new _APIConfig(value);
-  }
-  static isInstance(value) {
-    return value instanceof _APIConfig;
-  }
 };
+var api_config_default = APIConfig.load();
 
-// src/lib/configs/RedisConfig.ts
+// src/lib/configs/redis-config.ts
 import path6 from "path";
 import fs6 from "fs-extra";
 import yaml4 from "yaml";
-import _7 from "lodash";
+import _6 from "lodash";
 var CONFIG_PATH4 = path6.join(path6.resolve(), "configs/", environment_default.env, "/redis.yml");
 var RedisConfig = class _RedisConfig {
   /** Redis主机地址 */
@@ -623,65 +587,45 @@ var RedisConfig = class _RedisConfig {
   /** 连接数据库序号 */
   db;
   constructor(options) {
+    console.log("\u554A\u554A\u554A\u554A");
     const { host, port, password, name, sentinels, lazyConnect, sentinelRetryTimeout, db } = options || {};
-    this.host = _7.defaultTo(host, "127.0.0.1");
-    this.port = _7.defaultTo(port, 6379);
+    this.host = _6.defaultTo(host, "127.0.0.1");
+    this.port = _6.defaultTo(port, 6379);
     this.password = password;
     this.name = name;
     this.sentinels = sentinels;
-    this.lazyConnect = _7.defaultTo(lazyConnect, false);
-    this.sentinelRetryTimeout = _7.defaultTo(sentinelRetryTimeout, 100);
-    this.db = _7.defaultTo(db, 0);
+    this.lazyConnect = _6.defaultTo(lazyConnect, false);
+    this.sentinelRetryTimeout = _6.defaultTo(sentinelRetryTimeout, 100);
+    this.db = _6.defaultTo(db, 0);
   }
-  static load(filePath) {
-    filePath = filePath || CONFIG_PATH4;
-    if (!fs6.pathExistsSync(filePath))
+  static load() {
+    if (!fs6.pathExistsSync(CONFIG_PATH4))
       return new _RedisConfig();
-    const data = yaml4.parse(fs6.readFileSync(filePath).toString());
+    const data = yaml4.parse(fs6.readFileSync(CONFIG_PATH4).toString());
+    console.log(data, "\u554A\u554A");
     return new _RedisConfig(data);
   }
-  static create(value) {
-    if (_7.isUndefined(value))
-      return value;
-    return _RedisConfig.isInstance(value) ? value : new _RedisConfig(value);
-  }
-  static isInstance(value) {
-    return value instanceof _RedisConfig;
-  }
 };
+var redis_config_default = RedisConfig.load();
 
 // src/lib/config.ts
 var Config = class {
   /** 服务配置 */
-  service;
+  service = service_config_default;
   /** 系统配置 */
-  system;
+  system = system_config_default;
   /** API配置 */
-  api;
+  api = api_config_default;
   /** Redis配置 */
-  redis;
-  constructor(options = {}) {
-    const { service, system, api, redis } = options;
-    this.service = ServiceConfig.create(service);
-    this.system = SystemConfig.create(system);
-    this.api = APIConfig.create(api);
-    this.redis = RedisConfig.create(redis);
-  }
-  load() {
-    this.service = ServiceConfig.load();
-    this.system = SystemConfig.load();
-    this.api = APIConfig.load();
-    this.redis = RedisConfig.load();
-    return this;
-  }
+  redis = redis_config_default;
 };
-var config_default = new Config().load();
+var config_default = new Config();
 
 // src/lib/logger.ts
 import path7 from "path";
 import _util from "util";
 import "colors";
-import _8 from "lodash";
+import _7 from "lodash";
 import fs7 from "fs-extra";
 import { format as dateFormat2 } from "date-fns";
 var LogWriter = class {
@@ -734,7 +678,7 @@ var LogText = class {
     if (!text)
       return unknownInfo;
     const match = text.match(/at (.+) \((.+)\)/) || text.match(/at (.+)/);
-    if (!match || !_8.isString(match[2] || match[1]))
+    if (!match || !_7.isString(match[2] || match[1]))
       return unknownInfo;
     const temp = match[2] || match[1];
     const _match = temp.match(/([a-zA-Z0-9_\-\.]+)\:(\d+)\:(\d+)$/);
@@ -863,11 +807,11 @@ import KoaRouter from "koa-router";
 import koaRange from "koa-range";
 import koaCors from "koa2-cors";
 import koaBody from "koa-body";
-import _14 from "lodash";
+import _13 from "lodash";
 
 // src/lib/exceptions/Exception.ts
 import assert from "assert";
-import _9 from "lodash";
+import _8 from "lodash";
 var Exception = class extends Error {
   /** 错误码 */
   errcode;
@@ -880,30 +824,52 @@ var Exception = class extends Error {
   /**
    * 构造异常
    * 
-   * @param {[number, string]} exception 异常
-   * @param {string} _errmsg 异常消息
+   * @param exception 异常
+   * @param _errmsg 异常消息
    */
   constructor(exception, _errmsg) {
-    assert(_9.isArray(exception), "Exception must be Array");
+    assert(_8.isArray(exception), "Exception must be Array");
     const [errcode, errmsg] = exception;
-    assert(_9.isFinite(errcode), "Exception errcode invalid");
-    assert(_9.isString(errmsg), "Exception errmsg invalid");
+    assert(_8.isFinite(errcode), "Exception errcode invalid");
+    assert(_8.isString(errmsg), "Exception errmsg invalid");
     super(_errmsg || errmsg);
     this.errcode = errcode;
-    this.errmsg = errmsg;
+    this.errmsg = _errmsg || errmsg;
   }
   setHTTPStatusCode(value) {
     this.httpStatusCode = value;
     return this;
   }
   setData(value) {
-    this.data = _9.defaultTo(value, null);
+    this.data = _8.defaultTo(value, null);
     return this;
   }
 };
 
 // src/lib/request/Request.ts
-import _10 from "lodash";
+import _9 from "lodash";
+
+// src/lib/exceptions/APIException.ts
+var APIException = class extends Exception {
+  /**
+   * 构造异常
+   * 
+   * @param {[number, string]} exception 异常
+   */
+  constructor(exception, errmsg) {
+    super(exception, errmsg);
+  }
+};
+
+// src/api/consts/exceptions.ts
+var exceptions_default = {
+  API_TEST: [-9999, "API\u5F02\u5E38\u9519\u8BEF"],
+  API_TICKET_EXPIRED: [-2e3, "\u51ED\u8BC1\u5DF2\u8FC7\u671F"],
+  API_REQUEST_HAS_BLOCKED: [-2001, "\u8BF7\u6C42\u5DF2\u88AB\u963B\u6B62"],
+  API_REQUEST_PARAMS_INVALID: [-2002, "\u8BF7\u6C42\u53C2\u6570\u975E\u6CD5"]
+};
+
+// src/lib/request/Request.ts
 var Request = class {
   /** 请求方法 */
   method;
@@ -931,10 +897,6 @@ var Request = class {
   time;
   constructor(ctx, options = {}) {
     const { time } = options;
-    this.time = Number(_10.defaultTo(time, util_default.timestamp()));
-    this.init(ctx);
-  }
-  init(ctx) {
     this.method = ctx.request.method;
     this.url = ctx.request.url;
     this.path = ctx.request.path;
@@ -946,15 +908,29 @@ var Request = class {
     this.body = ctx.request.body || {};
     this.files = ctx.request.files || {};
     this.remoteIP = this.headers["X-Real-IP"] || this.headers["x-real-ip"] || this.headers["X-Forwarded-For"] || this.headers["x-forwarded-for"] || ctx.ip || null;
+    this.time = Number(_9.defaultTo(time, util_default.timestamp()));
+  }
+  validate(key, fn) {
+    try {
+      const value = _9.get(this, key);
+      if (fn) {
+        if (fn(value) === false)
+          throw `[Mismatch] -> ${fn}`;
+      } else if (_9.isUndefined(value))
+        throw "[Undefined]";
+    } catch (err) {
+      logger_default.warn(`Params ${key} invalid:`, err);
+      throw new APIException(exceptions_default.API_REQUEST_PARAMS_INVALID, `Params ${key} invalid`);
+    }
   }
 };
 
 // src/lib/response/Response.ts
 import mime2 from "mime";
-import _12 from "lodash";
+import _11 from "lodash";
 
 // src/lib/response/Body.ts
-import _11 from "lodash";
+import _10 from "lodash";
 var Body = class _Body {
   /** 状态码 */
   code;
@@ -966,10 +942,10 @@ var Body = class _Body {
   statusCode;
   constructor(options = {}) {
     const { code, message, data, statusCode } = options;
-    this.code = Number(_11.defaultTo(code, 0));
-    this.message = _11.defaultTo(message, "OK");
-    this.data = _11.defaultTo(data, null);
-    this.statusCode = Number(_11.defaultTo(statusCode, 200));
+    this.code = Number(_10.defaultTo(code, 0));
+    this.message = _10.defaultTo(message, "OK");
+    this.data = _10.defaultTo(data, null);
+    this.statusCode = Number(_10.defaultTo(statusCode, 200));
   }
   toObject() {
     return {
@@ -985,28 +961,28 @@ var Body = class _Body {
 
 // src/lib/response/Response.ts
 var Response = class _Response {
-  /** @type {number} 响应HTTP状态码 */
+  /** 响应HTTP状态码 */
   statusCode;
-  /** @type {string} 响应内容类型 */
+  /** 响应内容类型 */
   type;
-  /** @type {Object} 响应headers */
+  /** 响应headers */
   headers;
-  /** @type {string} 重定向目标 */
+  /** 重定向目标 */
   redirect;
-  /** @type {any} 响应载荷 */
+  /** 响应载荷 */
   body;
-  /** @type {number} 响应载荷大小 */
+  /** 响应载荷大小 */
   size;
-  /** @type {number} 响应时间戳 */
-  time = 0;
+  /** 响应时间戳 */
+  time;
   constructor(body, options = {}) {
     const { statusCode, type, headers, redirect, size, time } = options;
-    this.statusCode = Number(_12.defaultTo(statusCode, Body.isInstance(body) ? body.statusCode : void 0));
+    this.statusCode = Number(_11.defaultTo(statusCode, Body.isInstance(body) ? body.statusCode : void 0));
     this.type = type;
     this.headers = headers;
     this.redirect = redirect;
     this.size = size;
-    this.time = Number(_12.defaultTo(time, util_default.timestamp()));
+    this.time = Number(_11.defaultTo(time, util_default.timestamp()));
     this.body = body;
   }
   injectTo(ctx) {
@@ -1028,22 +1004,10 @@ var Response = class _Response {
 };
 
 // src/lib/response/FailureBody.ts
-import _13 from "lodash";
+import _12 from "lodash";
 
-// src/lib/exceptions/APIException.ts
-var APIException = class extends Exception {
-  /**
-   * 构造异常
-   * 
-   * @param {[number, string]} exception 异常
-   */
-  constructor(exception, errmsg) {
-    super(exception, errmsg);
-  }
-};
-
-// src/lib/exceptions.ts
-var exceptions_default = {
+// src/lib/consts/exceptions.ts
+var exceptions_default2 = {
   SYSTEM_ERROR: [-1e3, "\u7CFB\u7EDF\u5F02\u5E38"],
   SYSTEM_REQUEST_VALIDATION_ERROR: [-1001, "\u8BF7\u6C42\u53C2\u6570\u6821\u9A8C\u9519\u8BEF"],
   SYSTEM_NOT_ROUTE_MATCHING: [-1002, "\u65E0\u5339\u914D\u7684\u8DEF\u7531"]
@@ -1054,12 +1018,12 @@ var FailureBody = class _FailureBody extends Body {
   constructor(error, _data) {
     let errcode, errmsg, data = _data, httpStatusCode = http_status_codes_default.OK;
     ;
-    if (_13.isString(error))
-      error = new Exception(exceptions_default.SYSTEM_ERROR, error);
+    if (_12.isString(error))
+      error = new Exception(exceptions_default2.SYSTEM_ERROR, error);
     else if (error instanceof APIException || error instanceof Exception)
       ({ errcode, errmsg, data, httpStatusCode } = error);
-    else if (_13.isError(error))
-      error = new Exception(exceptions_default.SYSTEM_ERROR, error.message);
+    else if (_12.isError(error))
+      error = new Exception(exceptions_default2.SYSTEM_ERROR, error.message);
     super({
       code: errcode || -1,
       message: errmsg || "Internal error",
@@ -1074,16 +1038,14 @@ var FailureBody = class _FailureBody extends Body {
 
 // src/lib/server.ts
 var Server = class {
-  #koa;
-  //Koa实例
-  #router;
-  //Koa路由
+  app;
+  router;
   constructor() {
-    this.#koa = new Koa();
-    this.#koa.use(koaCors());
-    this.#koa.use(koaRange);
-    this.#router = new KoaRouter({ prefix: config_default.service.urlPrefix });
-    this.#koa.use(async (ctx, next) => {
+    this.app = new Koa();
+    this.app.use(koaCors());
+    this.app.use(koaRange);
+    this.router = new KoaRouter({ prefix: config_default.service.urlPrefix });
+    this.app.use(async (ctx, next) => {
       if (ctx.request.type === "application/xml" || ctx.request.type === "application/ssml+xml")
         ctx.req.headers["content-type"] = "text/xml";
       try {
@@ -1094,26 +1056,31 @@ var Server = class {
         new Response(failureBody).injectTo(ctx);
       }
     });
-    this.#koa.use(koaBody(_14.clone(config_default.system.requestBody)));
-    this.#koa.on("error", (err) => {
+    this.app.use(koaBody(_13.clone(config_default.system.requestBody)));
+    this.app.on("error", (err) => {
       if (["ECONNRESET", "ECONNABORTED", "EPIPE", "ECANCELED"].includes(err.code))
         return;
       logger_default.error(err);
     });
     logger_default.success("Server initialized");
   }
+  /**
+   * 附加路由
+   * 
+   * @param routes 路由列表
+   */
   attachRoutes(routes) {
     routes.forEach((route) => {
       const prefix = route.prefix || "";
       for (let method in route) {
         if (method === "prefix")
           continue;
-        if (!_14.isObject(route[method])) {
+        if (!_13.isObject(route[method])) {
           logger_default.warn(`Router ${prefix} ${method} invalid`);
           continue;
         }
         for (let uri in route[method]) {
-          this.#router[method](`${prefix}${uri}`, async (ctx) => {
+          this.router[method](`${prefix}${uri}`, async (ctx) => {
             const { request, response } = await this.#requestProcessing(ctx, route[method][uri]);
             if (response != null && config_default.system.requestLog)
               logger_default.info(`<- ${request.method} ${request.url} ${response.time - request.time}ms`);
@@ -1122,24 +1089,30 @@ var Server = class {
       }
       logger_default.info(`Route ${config_default.service.urlPrefix || ""}${prefix} attached`);
     });
-    this.#koa.use(this.#router.routes());
-    this.#koa.use((ctx) => {
+    this.app.use(this.router.routes());
+    this.app.use((ctx) => {
       const request = new Request(ctx);
       logger_default.debug(`-> ${ctx.request.method} ${ctx.request.url} request is not supported - ${request.remoteIP || "unknown"}`);
-      const failureBody = new FailureBody(new Exception(exceptions_default.SYSTEM_NOT_ROUTE_MATCHING, "Request is not supported"));
+      const failureBody = new FailureBody(new Exception(exceptions_default2.SYSTEM_NOT_ROUTE_MATCHING, "Request is not supported"));
       const response = new Response(failureBody);
       response.injectTo(ctx);
       if (config_default.system.requestLog)
         logger_default.info(`<- ${request.method} ${request.url} ${response.time - request.time}ms`);
     });
   }
-  #requestProcessing(ctx, route) {
+  /**
+   * 请求处理
+   * 
+   * @param ctx 上下文
+   * @param routeFn 路由方法
+   */
+  #requestProcessing(ctx, routeFn) {
     return new Promise((resolve) => {
       const request = new Request(ctx);
       try {
         if (config_default.system.requestLog)
           logger_default.info(`-> ${request.method} ${request.url}`);
-        route(request).then((response) => {
+        routeFn(request).then((response) => {
           try {
             if (!Response.isInstance(response)) {
               const _response = new Response(response);
@@ -1179,6 +1152,9 @@ var Server = class {
       }
     });
   }
+  /**
+   * 监听端口
+   */
   async listen() {
     const host = config_default.service.host;
     const port = config_default.service.port;
@@ -1186,14 +1162,14 @@ var Server = class {
       new Promise((resolve, reject) => {
         if (host === "0.0.0.0" || host === "localhost" || host === "127.0.0.1")
           return resolve(null);
-        this.#koa.listen(port, "localhost", (err) => {
+        this.app.listen(port, "localhost", (err) => {
           if (err)
             return reject(err);
           resolve(null);
         });
       }),
       new Promise((resolve, reject) => {
-        this.#koa.listen(port, host, (err) => {
+        this.app.listen(port, host, (err) => {
           if (err)
             return reject(err);
           resolve(null);
@@ -1220,10 +1196,10 @@ var conversation_default = {
 };
 
 // src/api/controllers/user.ts
-import _16 from "lodash";
+import _15 from "lodash";
 
 // src/api/models/user.ts
-import _15 from "lodash";
+import _14 from "lodash";
 var Ticket = class _Ticket {
   /** @type {string} 凭据ID */
   id;
@@ -1239,12 +1215,12 @@ var Ticket = class _Ticket {
   createTime;
   constructor(options = {}) {
     const { id, username, ipAddress, oldIPAddresses, ipAddressSwitchTimeIntervals, createTime } = options;
-    this.id = _15.defaultTo(id, util_default.uuid());
+    this.id = _14.defaultTo(id, util_default.uuid());
     this.username = username;
     this.ipAddress = ipAddress;
-    this.oldIPAddresses = _15.defaultTo(oldIPAddresses, []);
-    this.ipAddressSwitchTimeIntervals = _15.defaultTo(ipAddressSwitchTimeIntervals, []);
-    this.createTime = _15.defaultTo(createTime, util_default.unixTimestamp());
+    this.oldIPAddresses = _14.defaultTo(oldIPAddresses, []);
+    this.ipAddressSwitchTimeIntervals = _14.defaultTo(ipAddressSwitchTimeIntervals, []);
+    this.createTime = _14.defaultTo(createTime, util_default.unixTimestamp());
   }
   toRedisData() {
     return {
@@ -1263,13 +1239,6 @@ var Ticket = class _Ticket {
       createTime: Number(createTime)
     });
   }
-};
-
-// src/api/consts/exceptions.ts
-var exceptions_default2 = {
-  API_TEST: [-9999, "API\u5F02\u5E38\u9519\u8BEF"],
-  API_TICKET_EXPIRED: [-2e3, "\u51ED\u8BC1\u5DF2\u8FC7\u671F"],
-  API_REQUEST_HAS_BLOCKED: [-2001, "\u8BF7\u6C42\u5DF2\u88AB\u963B\u6B62"]
 };
 
 // src/lib/redis.ts
@@ -1316,14 +1285,14 @@ var user_default = {
    */
   async checkTicket(request) {
     const ticketId = request.headers["ticket"];
-    if (!_16.isString(ticketId) || !/^[a-z0-9\-]{36}$/.test(ticketId))
-      throw new APIException(exceptions_default2.API_TICKET_EXPIRED);
+    if (!_15.isString(ticketId) || !/^[a-z0-9\-]{36}$/.test(ticketId))
+      throw new APIException(exceptions_default.API_TICKET_EXPIRED);
     if (blockedIPAddresses.indexOf(request.remoteIP) != -1)
-      throw new APIException(exceptions_default2.API_REQUEST_HAS_BLOCKED);
+      throw new APIException(exceptions_default.API_REQUEST_HAS_BLOCKED);
     let ticket = new Ticket();
     const data = await redis_default.hmget(`ticket:${ticketId}`, ...Object.keys(ticket));
     if (data == null)
-      throw new APIException(exceptions_default2.API_TICKET_EXPIRED);
+      throw new APIException(exceptions_default.API_TICKET_EXPIRED);
     ticket = Ticket.parseRedisData(data);
     if (request.remoteIP && request.remoteIP != ticket.ipAddress) {
       ticket.oldIPAddresses.push(ticket.ipAddress);
@@ -1334,7 +1303,7 @@ var user_default = {
         if (averageInterval < 1800) {
           [...ticket.oldIPAddresses, ticket.ipAddress].forEach((ip) => blockedIPAddresses.push(ip));
           logger_default.warn("\u963B\u6B62IP\u5730\u5740\u540D\u5355\uFF1A", blockedIPAddresses);
-          throw new APIException(exceptions_default2.API_REQUEST_HAS_BLOCKED);
+          throw new APIException(exceptions_default.API_REQUEST_HAS_BLOCKED);
         }
         ticket.ipAddressSwitchTimeIntervals.shift();
       }
@@ -1360,11 +1329,13 @@ var conversation_default2 = {
 };
 
 // src/api/routes/user.ts
+import _16 from "lodash";
 var user_default2 = {
   prefix: "/user",
   post: {
     "/register": async (request) => {
       const { username } = request.body;
+      request.validate("body.username", _16.isString);
       const ticket = await user_default.createTicket({
         username,
         ipAddress: request.remoteIP
@@ -1395,7 +1366,7 @@ var startupTime = performance.now();
   config_default.service.bindAddress && logger_default.success("service bind address:", config_default.service.bindAddress);
 })().then(
   () => logger_default.success(
-    `Service startup completed (${parseFloat((performance.now() - startupTime).toFixed(2))}ms)`
+    `Service startup completed (${Math.floor(performance.now() - startupTime)}ms)`
   )
 ).catch((err) => console.error(err));
 //# sourceMappingURL=index.js.map

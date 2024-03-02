@@ -1,5 +1,12 @@
 import  _ from 'lodash';
 
+export interface BodyOptions {
+    code?: number;
+    message?: string;
+    data?: any;
+    statusCode?: number;
+}
+
 export default class Body {
 
     /** 状态码 */
@@ -11,8 +18,8 @@ export default class Body {
     /** HTTP状态码 */
     statusCode: number;
 
-    constructor(options = {}) {
-        const { code, message, data, statusCode } = options as any;
+    constructor(options: BodyOptions = {}) {
+        const { code, message, data, statusCode } = options;
         this.code = Number(_.defaultTo(code, 0));
         this.message = _.defaultTo(message, 'OK');
         this.data = _.defaultTo(data, null);

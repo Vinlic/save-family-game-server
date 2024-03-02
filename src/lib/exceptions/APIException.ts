@@ -7,7 +7,7 @@ export default class APIException extends Exception {
      * 
      * @param {[number, string]} exception 异常
      */
-    constructor(exception, errmsg?: string) {
+    constructor(exception: (string | number)[], errmsg?: string) {
         super(exception, errmsg);
     }
 

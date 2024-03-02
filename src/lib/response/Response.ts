@@ -4,25 +4,35 @@ import _ from 'lodash';
 import Body from './Body.ts';
 import util from '../util.ts';
 
+export interface ResponseOptions {
+    statusCode?: number;
+    type?: string;
+    headers?: Record<string, any>;
+    redirect?: string;
+    body?: any;
+    size?: number;
+    time?: number;
+}
+
 export default class Response {
 
-    /** @type {number} 响应HTTP状态码 */
-    statusCode;
-    /** @type {string} 响应内容类型 */
-    type;
-    /** @type {Object} 响应headers */
-    headers;
-    /** @type {string} 重定向目标 */
-    redirect;
-    /** @type {any} 响应载荷 */
-    body;
-    /** @type {number} 响应载荷大小 */
-    size;
-    /** @type {number} 响应时间戳 */
-    time = 0;
+    /** 响应HTTP状态码 */
+    statusCode: number;
+    /** 响应内容类型 */
+    type: string;
+    /** 响应headers */
+    headers: Record<string, any>;
+    /** 重定向目标 */
+    redirect: string;
+    /** 响应载荷 */
+    body: any;
+    /** 响应载荷大小 */
+    size: number;
+    /** 响应时间戳 */
+    time: number;
 
-    constructor(body, options = {}) {
-        const { statusCode, type, headers, redirect, size, time } = options as any;
+    constructor(body: any, options: ResponseOptions = {}) {
+        const { statusCode, type, headers, redirect, size, time } = options;
         this.statusCode = Number(_.defaultTo(statusCode, Body.isInstance(body) ? body.statusCode : undefined))
         this.type = type;
         this.headers = headers;

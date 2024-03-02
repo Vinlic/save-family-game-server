@@ -11,7 +11,7 @@ class Redis extends IORedis {
         });
     }
 
-    async hmget(key, ...fields) {
+    async hmget(key: string, ...fields: any[]): Promise<any> {
         if(!await super.exists(key))
             return null;
         const values = await super.hmget(key, ...fields);

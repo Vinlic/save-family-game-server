@@ -16,25 +16,25 @@ export default class Exception extends Error {
     /**
      * 构造异常
      * 
-     * @param {[number, string]} exception 异常
-     * @param {string} _errmsg 异常消息
+     * @param exception 异常
+     * @param _errmsg 异常消息
      */
-    constructor(exception, _errmsg?: string) {
+    constructor(exception: (string | number)[], _errmsg?: string) {
         assert(_.isArray(exception), 'Exception must be Array');
-        const [errcode, errmsg] = exception;
+        const [errcode, errmsg] = exception as [number, string];
         assert(_.isFinite(errcode), 'Exception errcode invalid');
         assert(_.isString(errmsg), 'Exception errmsg invalid');
         super(_errmsg || errmsg);
         this.errcode = errcode;
-        this.errmsg = errmsg;
+        this.errmsg = _errmsg || errmsg;
     }
 
-    setHTTPStatusCode(value) {
+    setHTTPStatusCode(value: number) {
         this.httpStatusCode = value;
         return this;
     }
 
-    setData(value) {
+    setData(value: any) {
         this.data = _.defaultTo(value, null);
         return this;
     }

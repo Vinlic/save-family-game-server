@@ -61,7 +61,7 @@ var environment_default = new Environment({
   package: JSON.parse(import_fs_extra.default.readFileSync(import_path.default.join(import_path.default.resolve(), "package.json")).toString())
 });
 
-// src/lib/configs/ServiceConfig.ts
+// src/lib/configs/service-config.ts
 var import_path3 = __toESM(require("path"), 1);
 var import_fs_extra3 = __toESM(require("fs-extra"), 1);
 var import_yaml = __toESM(require("yaml"), 1);
@@ -236,14 +236,7 @@ var util = {
       throw new Error("callback must be an Function");
     return new import_cron.CronJob(cronPatterns, () => callback(), null, false, "Asia/Shanghai");
   },
-  generateSSEData(event, data, retry) {
-    return `event: ${event || "message"}
-data: ${(data || "").replace(/\n/g, "\\n").replace(/\s/g, "\\s")}
-retry: ${retry || 3e3}
-
-`;
-  },
-  createProxyAgent(options = {}) {
+  createProxyAgent(options) {
     const { enable, protocol, host, port } = options;
     if (enable === false)
       return null;
@@ -397,7 +390,7 @@ retry: ${retry || 3e3}
     return import_lodash2.default.isBuffer(value) ? import_crc_32.default.buf(value) : import_crc_32.default.str(value);
   },
   arrayParse(value) {
-    import_lodash2.default.isArray(value) ? value : [value];
+    return import_lodash2.default.isArray(value) ? value : [value];
   },
   printLogo() {
     console.log(LOGO_TEXT["brightBlue"]);
@@ -414,7 +407,7 @@ retry: ${retry || 3e3}
 };
 var util_default = util;
 
-// src/lib/configs/ServiceConfig.ts
+// src/lib/configs/service-config.ts
 var CONFIG_PATH = import_path3.default.join(import_path3.default.resolve(), "configs/", environment_default.env, "/service.yml");
 var ServiceConfig = class _ServiceConfig {
   /** 服务名称 */
@@ -454,25 +447,17 @@ var ServiceConfig = class _ServiceConfig {
   get publicDirUrl() {
     return `http://127.0.0.1:${this.port}/public`;
   }
-  static load(filePath) {
-    filePath = filePath || CONFIG_PATH;
+  static load() {
     const external = import_lodash3.default.pickBy(environment_default, (v, k) => ["name", "host", "port"].includes(k) && !import_lodash3.default.isUndefined(v));
-    if (!import_fs_extra3.default.pathExistsSync(filePath))
+    if (!import_fs_extra3.default.pathExistsSync(CONFIG_PATH))
       return new _ServiceConfig(external);
-    const data = import_yaml.default.parse(import_fs_extra3.default.readFileSync(filePath).toString());
+    const data = import_yaml.default.parse(import_fs_extra3.default.readFileSync(CONFIG_PATH).toString());
     return new _ServiceConfig({ ...data, ...external });
   }
-  static create(value) {
-    if (import_lodash3.default.isUndefined(value))
-      return value;
-    return _ServiceConfig.isInstance(value) ? value : new _ServiceConfig(value);
-  }
-  static isInstance(value) {
-    return value instanceof _ServiceConfig;
-  }
 };
+var service_config_default = ServiceConfig.load();
 
-// src/lib/configs/SystemConfig.ts
+// src/lib/configs/system-config.ts
 var import_path4 = __toESM(require("path"), 1);
 var import_fs_extra4 = __toESM(require("fs-extra"), 1);
 var import_yaml2 = __toESM(require("yaml"), 1);
@@ -533,31 +518,21 @@ var SystemConfig = class _SystemConfig {
   get publicDirPath() {
     return import_path4.default.resolve(this.publicDir);
   }
-  static load(filePath) {
-    filePath = filePath || CONFIG_PATH2;
-    if (!import_fs_extra4.default.pathExistsSync(filePath))
+  static load() {
+    if (!import_fs_extra4.default.pathExistsSync(CONFIG_PATH2))
       return new _SystemConfig();
-    const data = import_yaml2.default.parse(import_fs_extra4.default.readFileSync(filePath).toString());
+    const data = import_yaml2.default.parse(import_fs_extra4.default.readFileSync(CONFIG_PATH2).toString());
     return new _SystemConfig(data);
   }
-  static create(value) {
-    if (import_lodash4.default.isUndefined(value))
-      return value;
-    return _SystemConfig.isInstance(value) ? value : new _SystemConfig(value);
-  }
-  static isInstance(value) {
-    return value instanceof _SystemConfig;
-  }
 };
+var system_config_default = SystemConfig.load();
 
-// src/lib/configs/APIConfig.ts
+// src/lib/configs/api-config.ts
 var import_path5 = __toESM(require("path"), 1);
 var import_fs_extra5 = __toESM(require("fs-extra"), 1);
 var import_yaml3 = __toESM(require("yaml"), 1);
-var import_lodash6 = __toESM(require("lodash"), 1);
-
-// src/lib/configs/ChatCompletionConfig.ts
 var import_lodash5 = __toESM(require("lodash"), 1);
+var CONFIG_PATH3 = import_path5.default.join(import_path5.default.resolve(), "configs/", environment_default.env, "/api.yml");
 var ChatCompletionConfig = class _ChatCompletionConfig {
   /** 驱动名称 */
   driver;
@@ -596,9 +571,6 @@ var ChatCompletionConfig = class _ChatCompletionConfig {
     return value instanceof _ChatCompletionConfig;
   }
 };
-
-// src/lib/configs/APIConfig.ts
-var CONFIG_PATH3 = import_path5.default.join(import_path5.default.resolve(), "configs/", environment_default.env, "/api.yml");
 var APIConfig = class _APIConfig {
   /** 聊天补全配置 */
   chatCompletion;
@@ -606,28 +578,20 @@ var APIConfig = class _APIConfig {
     const { chatCompletion } = options || {};
     this.chatCompletion = ChatCompletionConfig.create(chatCompletion);
   }
-  static load(filePath) {
-    filePath = filePath || CONFIG_PATH3;
-    if (!import_fs_extra5.default.pathExistsSync(filePath))
+  static load() {
+    if (!import_fs_extra5.default.pathExistsSync(CONFIG_PATH3))
       return new _APIConfig();
-    const data = import_yaml3.default.parse(import_fs_extra5.default.readFileSync(filePath).toString());
+    const data = import_yaml3.default.parse(import_fs_extra5.default.readFileSync(CONFIG_PATH3).toString());
     return new _APIConfig(data);
   }
-  static create(value) {
-    if (import_lodash6.default.isUndefined(value))
-      return value;
-    return _APIConfig.isInstance(value) ? value : new _APIConfig(value);
-  }
-  static isInstance(value) {
-    return value instanceof _APIConfig;
-  }
 };
+var api_config_default = APIConfig.load();
 
-// src/lib/configs/RedisConfig.ts
+// src/lib/configs/redis-config.ts
 var import_path6 = __toESM(require("path"), 1);
 var import_fs_extra6 = __toESM(require("fs-extra"), 1);
 var import_yaml4 = __toESM(require("yaml"), 1);
-var import_lodash7 = __toESM(require("lodash"), 1);
+var import_lodash6 = __toESM(require("lodash"), 1);
 var CONFIG_PATH4 = import_path6.default.join(import_path6.default.resolve(), "configs/", environment_default.env, "/redis.yml");
 var RedisConfig = class _RedisConfig {
   /** Redis主机地址 */
@@ -647,65 +611,45 @@ var RedisConfig = class _RedisConfig {
   /** 连接数据库序号 */
   db;
   constructor(options) {
+    console.log("\u554A\u554A\u554A\u554A");
     const { host, port, password, name, sentinels, lazyConnect, sentinelRetryTimeout, db } = options || {};
-    this.host = import_lodash7.default.defaultTo(host, "127.0.0.1");
-    this.port = import_lodash7.default.defaultTo(port, 6379);
+    this.host = import_lodash6.default.defaultTo(host, "127.0.0.1");
+    this.port = import_lodash6.default.defaultTo(port, 6379);
     this.password = password;
     this.name = name;
     this.sentinels = sentinels;
-    this.lazyConnect = import_lodash7.default.defaultTo(lazyConnect, false);
-    this.sentinelRetryTimeout = import_lodash7.default.defaultTo(sentinelRetryTimeout, 100);
-    this.db = import_lodash7.default.defaultTo(db, 0);
+    this.lazyConnect = import_lodash6.default.defaultTo(lazyConnect, false);
+    this.sentinelRetryTimeout = import_lodash6.default.defaultTo(sentinelRetryTimeout, 100);
+    this.db = import_lodash6.default.defaultTo(db, 0);
   }
-  static load(filePath) {
-    filePath = filePath || CONFIG_PATH4;
-    if (!import_fs_extra6.default.pathExistsSync(filePath))
+  static load() {
+    if (!import_fs_extra6.default.pathExistsSync(CONFIG_PATH4))
       return new _RedisConfig();
-    const data = import_yaml4.default.parse(import_fs_extra6.default.readFileSync(filePath).toString());
+    const data = import_yaml4.default.parse(import_fs_extra6.default.readFileSync(CONFIG_PATH4).toString());
+    console.log(data, "\u554A\u554A");
     return new _RedisConfig(data);
   }
-  static create(value) {
-    if (import_lodash7.default.isUndefined(value))
-      return value;
-    return _RedisConfig.isInstance(value) ? value : new _RedisConfig(value);
-  }
-  static isInstance(value) {
-    return value instanceof _RedisConfig;
-  }
 };
+var redis_config_default = RedisConfig.load();
 
 // src/lib/config.ts
 var Config = class {
   /** 服务配置 */
-  service;
+  service = service_config_default;
   /** 系统配置 */
-  system;
+  system = system_config_default;
   /** API配置 */
-  api;
+  api = api_config_default;
   /** Redis配置 */
-  redis;
-  constructor(options = {}) {
-    const { service, system, api, redis } = options;
-    this.service = ServiceConfig.create(service);
-    this.system = SystemConfig.create(system);
-    this.api = APIConfig.create(api);
-    this.redis = RedisConfig.create(redis);
-  }
-  load() {
-    this.service = ServiceConfig.load();
-    this.system = SystemConfig.load();
-    this.api = APIConfig.load();
-    this.redis = RedisConfig.load();
-    return this;
-  }
+  redis = redis_config_default;
 };
-var config_default = new Config().load();
+var config_default = new Config();
 
 // src/lib/logger.ts
 var import_path7 = __toESM(require("path"), 1);
 var import_util2 = __toESM(require("util"), 1);
 var import_colors2 = require("colors");
-var import_lodash8 = __toESM(require("lodash"), 1);
+var import_lodash7 = __toESM(require("lodash"), 1);
 var import_fs_extra7 = __toESM(require("fs-extra"), 1);
 var import_date_fns2 = require("date-fns");
 var LogWriter = class {
@@ -758,7 +702,7 @@ var LogText = class {
     if (!text)
       return unknownInfo;
     const match = text.match(/at (.+) \((.+)\)/) || text.match(/at (.+)/);
-    if (!match || !import_lodash8.default.isString(match[2] || match[1]))
+    if (!match || !import_lodash7.default.isString(match[2] || match[1]))
       return unknownInfo;
     const temp = match[2] || match[1];
     const _match = temp.match(/([a-zA-Z0-9_\-\.]+)\:(\d+)\:(\d+)$/);
@@ -887,11 +831,11 @@ var import_koa_router = __toESM(require("koa-router"), 1);
 var import_koa_range = __toESM(require("koa-range"), 1);
 var import_koa2_cors = __toESM(require("koa2-cors"), 1);
 var import_koa_body = __toESM(require("koa-body"), 1);
-var import_lodash14 = __toESM(require("lodash"), 1);
+var import_lodash13 = __toESM(require("lodash"), 1);
 
 // src/lib/exceptions/Exception.ts
 var import_assert = __toESM(require("assert"), 1);
-var import_lodash9 = __toESM(require("lodash"), 1);
+var import_lodash8 = __toESM(require("lodash"), 1);
 var Exception = class extends Error {
   /** 错误码 */
   errcode;
@@ -904,30 +848,52 @@ var Exception = class extends Error {
   /**
    * 构造异常
    * 
-   * @param {[number, string]} exception 异常
-   * @param {string} _errmsg 异常消息
+   * @param exception 异常
+   * @param _errmsg 异常消息
    */
   constructor(exception, _errmsg) {
-    (0, import_assert.default)(import_lodash9.default.isArray(exception), "Exception must be Array");
+    (0, import_assert.default)(import_lodash8.default.isArray(exception), "Exception must be Array");
     const [errcode, errmsg] = exception;
-    (0, import_assert.default)(import_lodash9.default.isFinite(errcode), "Exception errcode invalid");
-    (0, import_assert.default)(import_lodash9.default.isString(errmsg), "Exception errmsg invalid");
+    (0, import_assert.default)(import_lodash8.default.isFinite(errcode), "Exception errcode invalid");
+    (0, import_assert.default)(import_lodash8.default.isString(errmsg), "Exception errmsg invalid");
     super(_errmsg || errmsg);
     this.errcode = errcode;
-    this.errmsg = errmsg;
+    this.errmsg = _errmsg || errmsg;
   }
   setHTTPStatusCode(value) {
     this.httpStatusCode = value;
     return this;
   }
   setData(value) {
-    this.data = import_lodash9.default.defaultTo(value, null);
+    this.data = import_lodash8.default.defaultTo(value, null);
     return this;
   }
 };
 
 // src/lib/request/Request.ts
-var import_lodash10 = __toESM(require("lodash"), 1);
+var import_lodash9 = __toESM(require("lodash"), 1);
+
+// src/lib/exceptions/APIException.ts
+var APIException = class extends Exception {
+  /**
+   * 构造异常
+   * 
+   * @param {[number, string]} exception 异常
+   */
+  constructor(exception, errmsg) {
+    super(exception, errmsg);
+  }
+};
+
+// src/api/consts/exceptions.ts
+var exceptions_default = {
+  API_TEST: [-9999, "API\u5F02\u5E38\u9519\u8BEF"],
+  API_TICKET_EXPIRED: [-2e3, "\u51ED\u8BC1\u5DF2\u8FC7\u671F"],
+  API_REQUEST_HAS_BLOCKED: [-2001, "\u8BF7\u6C42\u5DF2\u88AB\u963B\u6B62"],
+  API_REQUEST_PARAMS_INVALID: [-2002, "\u8BF7\u6C42\u53C2\u6570\u975E\u6CD5"]
+};
+
+// src/lib/request/Request.ts
 var Request = class {
   /** 请求方法 */
   method;
@@ -955,10 +921,6 @@ var Request = class {
   time;
   constructor(ctx, options = {}) {
     const { time } = options;
-    this.time = Number(import_lodash10.default.defaultTo(time, util_default.timestamp()));
-    this.init(ctx);
-  }
-  init(ctx) {
     this.method = ctx.request.method;
     this.url = ctx.request.url;
     this.path = ctx.request.path;
@@ -970,15 +932,29 @@ var Request = class {
     this.body = ctx.request.body || {};
     this.files = ctx.request.files || {};
     this.remoteIP = this.headers["X-Real-IP"] || this.headers["x-real-ip"] || this.headers["X-Forwarded-For"] || this.headers["x-forwarded-for"] || ctx.ip || null;
+    this.time = Number(import_lodash9.default.defaultTo(time, util_default.timestamp()));
+  }
+  validate(key, fn) {
+    try {
+      const value = import_lodash9.default.get(this, key);
+      if (fn) {
+        if (fn(value) === false)
+          throw `[Mismatch] -> ${fn}`;
+      } else if (import_lodash9.default.isUndefined(value))
+        throw "[Undefined]";
+    } catch (err) {
+      logger_default.warn(`Params ${key} invalid:`, err);
+      throw new APIException(exceptions_default.API_REQUEST_PARAMS_INVALID, `Params ${key} invalid`);
+    }
   }
 };
 
 // src/lib/response/Response.ts
 var import_mime2 = __toESM(require("mime"), 1);
-var import_lodash12 = __toESM(require("lodash"), 1);
+var import_lodash11 = __toESM(require("lodash"), 1);
 
 // src/lib/response/Body.ts
-var import_lodash11 = __toESM(require("lodash"), 1);
+var import_lodash10 = __toESM(require("lodash"), 1);
 var Body = class _Body {
   /** 状态码 */
   code;
@@ -990,10 +966,10 @@ var Body = class _Body {
   statusCode;
   constructor(options = {}) {
     const { code, message, data, statusCode } = options;
-    this.code = Number(import_lodash11.default.defaultTo(code, 0));
-    this.message = import_lodash11.default.defaultTo(message, "OK");
-    this.data = import_lodash11.default.defaultTo(data, null);
-    this.statusCode = Number(import_lodash11.default.defaultTo(statusCode, 200));
+    this.code = Number(import_lodash10.default.defaultTo(code, 0));
+    this.message = import_lodash10.default.defaultTo(message, "OK");
+    this.data = import_lodash10.default.defaultTo(data, null);
+    this.statusCode = Number(import_lodash10.default.defaultTo(statusCode, 200));
   }
   toObject() {
     return {
@@ -1009,28 +985,28 @@ var Body = class _Body {
 
 // src/lib/response/Response.ts
 var Response = class _Response {
-  /** @type {number} 响应HTTP状态码 */
+  /** 响应HTTP状态码 */
   statusCode;
-  /** @type {string} 响应内容类型 */
+  /** 响应内容类型 */
   type;
-  /** @type {Object} 响应headers */
+  /** 响应headers */
   headers;
-  /** @type {string} 重定向目标 */
+  /** 重定向目标 */
   redirect;
-  /** @type {any} 响应载荷 */
+  /** 响应载荷 */
   body;
-  /** @type {number} 响应载荷大小 */
+  /** 响应载荷大小 */
   size;
-  /** @type {number} 响应时间戳 */
-  time = 0;
+  /** 响应时间戳 */
+  time;
   constructor(body, options = {}) {
     const { statusCode, type, headers, redirect, size, time } = options;
-    this.statusCode = Number(import_lodash12.default.defaultTo(statusCode, Body.isInstance(body) ? body.statusCode : void 0));
+    this.statusCode = Number(import_lodash11.default.defaultTo(statusCode, Body.isInstance(body) ? body.statusCode : void 0));
     this.type = type;
     this.headers = headers;
     this.redirect = redirect;
     this.size = size;
-    this.time = Number(import_lodash12.default.defaultTo(time, util_default.timestamp()));
+    this.time = Number(import_lodash11.default.defaultTo(time, util_default.timestamp()));
     this.body = body;
   }
   injectTo(ctx) {
@@ -1052,22 +1028,10 @@ var Response = class _Response {
 };
 
 // src/lib/response/FailureBody.ts
-var import_lodash13 = __toESM(require("lodash"), 1);
+var import_lodash12 = __toESM(require("lodash"), 1);
 
-// src/lib/exceptions/APIException.ts
-var APIException = class extends Exception {
-  /**
-   * 构造异常
-   * 
-   * @param {[number, string]} exception 异常
-   */
-  constructor(exception, errmsg) {
-    super(exception, errmsg);
-  }
-};
-
-// src/lib/exceptions.ts
-var exceptions_default = {
+// src/lib/consts/exceptions.ts
+var exceptions_default2 = {
   SYSTEM_ERROR: [-1e3, "\u7CFB\u7EDF\u5F02\u5E38"],
   SYSTEM_REQUEST_VALIDATION_ERROR: [-1001, "\u8BF7\u6C42\u53C2\u6570\u6821\u9A8C\u9519\u8BEF"],
   SYSTEM_NOT_ROUTE_MATCHING: [-1002, "\u65E0\u5339\u914D\u7684\u8DEF\u7531"]
@@ -1078,12 +1042,12 @@ var FailureBody = class _FailureBody extends Body {
   constructor(error, _data) {
     let errcode, errmsg, data = _data, httpStatusCode = http_status_codes_default.OK;
     ;
-    if (import_lodash13.default.isString(error))
-      error = new Exception(exceptions_default.SYSTEM_ERROR, error);
+    if (import_lodash12.default.isString(error))
+      error = new Exception(exceptions_default2.SYSTEM_ERROR, error);
     else if (error instanceof APIException || error instanceof Exception)
       ({ errcode, errmsg, data, httpStatusCode } = error);
-    else if (import_lodash13.default.isError(error))
-      error = new Exception(exceptions_default.SYSTEM_ERROR, error.message);
+    else if (import_lodash12.default.isError(error))
+      error = new Exception(exceptions_default2.SYSTEM_ERROR, error.message);
     super({
       code: errcode || -1,
       message: errmsg || "Internal error",
@@ -1098,16 +1062,14 @@ var FailureBody = class _FailureBody extends Body {
 
 // src/lib/server.ts
 var Server = class {
-  #koa;
-  //Koa实例
-  #router;
-  //Koa路由
+  app;
+  router;
   constructor() {
-    this.#koa = new import_koa.default();
-    this.#koa.use((0, import_koa2_cors.default)());
-    this.#koa.use(import_koa_range.default);
-    this.#router = new import_koa_router.default({ prefix: config_default.service.urlPrefix });
-    this.#koa.use(async (ctx, next) => {
+    this.app = new import_koa.default();
+    this.app.use((0, import_koa2_cors.default)());
+    this.app.use(import_koa_range.default);
+    this.router = new import_koa_router.default({ prefix: config_default.service.urlPrefix });
+    this.app.use(async (ctx, next) => {
       if (ctx.request.type === "application/xml" || ctx.request.type === "application/ssml+xml")
         ctx.req.headers["content-type"] = "text/xml";
       try {
@@ -1118,26 +1080,31 @@ var Server = class {
         new Response(failureBody).injectTo(ctx);
       }
     });
-    this.#koa.use((0, import_koa_body.default)(import_lodash14.default.clone(config_default.system.requestBody)));
-    this.#koa.on("error", (err) => {
+    this.app.use((0, import_koa_body.default)(import_lodash13.default.clone(config_default.system.requestBody)));
+    this.app.on("error", (err) => {
       if (["ECONNRESET", "ECONNABORTED", "EPIPE", "ECANCELED"].includes(err.code))
         return;
       logger_default.error(err);
     });
     logger_default.success("Server initialized");
   }
+  /**
+   * 附加路由
+   * 
+   * @param routes 路由列表
+   */
   attachRoutes(routes) {
     routes.forEach((route) => {
       const prefix = route.prefix || "";
       for (let method in route) {
         if (method === "prefix")
           continue;
-        if (!import_lodash14.default.isObject(route[method])) {
+        if (!import_lodash13.default.isObject(route[method])) {
           logger_default.warn(`Router ${prefix} ${method} invalid`);
           continue;
         }
         for (let uri in route[method]) {
-          this.#router[method](`${prefix}${uri}`, async (ctx) => {
+          this.router[method](`${prefix}${uri}`, async (ctx) => {
             const { request, response } = await this.#requestProcessing(ctx, route[method][uri]);
             if (response != null && config_default.system.requestLog)
               logger_default.info(`<- ${request.method} ${request.url} ${response.time - request.time}ms`);
@@ -1146,24 +1113,30 @@ var Server = class {
       }
       logger_default.info(`Route ${config_default.service.urlPrefix || ""}${prefix} attached`);
     });
-    this.#koa.use(this.#router.routes());
-    this.#koa.use((ctx) => {
+    this.app.use(this.router.routes());
+    this.app.use((ctx) => {
       const request = new Request(ctx);
       logger_default.debug(`-> ${ctx.request.method} ${ctx.request.url} request is not supported - ${request.remoteIP || "unknown"}`);
-      const failureBody = new FailureBody(new Exception(exceptions_default.SYSTEM_NOT_ROUTE_MATCHING, "Request is not supported"));
+      const failureBody = new FailureBody(new Exception(exceptions_default2.SYSTEM_NOT_ROUTE_MATCHING, "Request is not supported"));
       const response = new Response(failureBody);
       response.injectTo(ctx);
       if (config_default.system.requestLog)
         logger_default.info(`<- ${request.method} ${request.url} ${response.time - request.time}ms`);
     });
   }
-  #requestProcessing(ctx, route) {
+  /**
+   * 请求处理
+   * 
+   * @param ctx 上下文
+   * @param routeFn 路由方法
+   */
+  #requestProcessing(ctx, routeFn) {
     return new Promise((resolve) => {
       const request = new Request(ctx);
       try {
         if (config_default.system.requestLog)
           logger_default.info(`-> ${request.method} ${request.url}`);
-        route(request).then((response) => {
+        routeFn(request).then((response) => {
           try {
             if (!Response.isInstance(response)) {
               const _response = new Response(response);
@@ -1203,6 +1176,9 @@ var Server = class {
       }
     });
   }
+  /**
+   * 监听端口
+   */
   async listen() {
     const host = config_default.service.host;
     const port = config_default.service.port;
@@ -1210,14 +1186,14 @@ var Server = class {
       new Promise((resolve, reject) => {
         if (host === "0.0.0.0" || host === "localhost" || host === "127.0.0.1")
           return resolve(null);
-        this.#koa.listen(port, "localhost", (err) => {
+        this.app.listen(port, "localhost", (err) => {
           if (err)
             return reject(err);
           resolve(null);
         });
       }),
       new Promise((resolve, reject) => {
-        this.#koa.listen(port, host, (err) => {
+        this.app.listen(port, host, (err) => {
           if (err)
             return reject(err);
           resolve(null);
@@ -1244,10 +1220,10 @@ var conversation_default = {
 };
 
 // src/api/controllers/user.ts
-var import_lodash16 = __toESM(require("lodash"), 1);
+var import_lodash15 = __toESM(require("lodash"), 1);
 
 // src/api/models/user.ts
-var import_lodash15 = __toESM(require("lodash"), 1);
+var import_lodash14 = __toESM(require("lodash"), 1);
 var Ticket = class _Ticket {
   /** @type {string} 凭据ID */
   id;
@@ -1263,12 +1239,12 @@ var Ticket = class _Ticket {
   createTime;
   constructor(options = {}) {
     const { id, username, ipAddress, oldIPAddresses, ipAddressSwitchTimeIntervals, createTime } = options;
-    this.id = import_lodash15.default.defaultTo(id, util_default.uuid());
+    this.id = import_lodash14.default.defaultTo(id, util_default.uuid());
     this.username = username;
     this.ipAddress = ipAddress;
-    this.oldIPAddresses = import_lodash15.default.defaultTo(oldIPAddresses, []);
-    this.ipAddressSwitchTimeIntervals = import_lodash15.default.defaultTo(ipAddressSwitchTimeIntervals, []);
-    this.createTime = import_lodash15.default.defaultTo(createTime, util_default.unixTimestamp());
+    this.oldIPAddresses = import_lodash14.default.defaultTo(oldIPAddresses, []);
+    this.ipAddressSwitchTimeIntervals = import_lodash14.default.defaultTo(ipAddressSwitchTimeIntervals, []);
+    this.createTime = import_lodash14.default.defaultTo(createTime, util_default.unixTimestamp());
   }
   toRedisData() {
     return {
@@ -1287,13 +1263,6 @@ var Ticket = class _Ticket {
       createTime: Number(createTime)
     });
   }
-};
-
-// src/api/consts/exceptions.ts
-var exceptions_default2 = {
-  API_TEST: [-9999, "API\u5F02\u5E38\u9519\u8BEF"],
-  API_TICKET_EXPIRED: [-2e3, "\u51ED\u8BC1\u5DF2\u8FC7\u671F"],
-  API_REQUEST_HAS_BLOCKED: [-2001, "\u8BF7\u6C42\u5DF2\u88AB\u963B\u6B62"]
 };
 
 // src/lib/redis.ts
@@ -1340,14 +1309,14 @@ var user_default = {
    */
   async checkTicket(request) {
     const ticketId = request.headers["ticket"];
-    if (!import_lodash16.default.isString(ticketId) || !/^[a-z0-9\-]{36}$/.test(ticketId))
-      throw new APIException(exceptions_default2.API_TICKET_EXPIRED);
+    if (!import_lodash15.default.isString(ticketId) || !/^[a-z0-9\-]{36}$/.test(ticketId))
+      throw new APIException(exceptions_default.API_TICKET_EXPIRED);
     if (blockedIPAddresses.indexOf(request.remoteIP) != -1)
-      throw new APIException(exceptions_default2.API_REQUEST_HAS_BLOCKED);
+      throw new APIException(exceptions_default.API_REQUEST_HAS_BLOCKED);
     let ticket = new Ticket();
     const data = await redis_default.hmget(`ticket:${ticketId}`, ...Object.keys(ticket));
     if (data == null)
-      throw new APIException(exceptions_default2.API_TICKET_EXPIRED);
+      throw new APIException(exceptions_default.API_TICKET_EXPIRED);
     ticket = Ticket.parseRedisData(data);
     if (request.remoteIP && request.remoteIP != ticket.ipAddress) {
       ticket.oldIPAddresses.push(ticket.ipAddress);
@@ -1358,7 +1327,7 @@ var user_default = {
         if (averageInterval < 1800) {
           [...ticket.oldIPAddresses, ticket.ipAddress].forEach((ip) => blockedIPAddresses.push(ip));
           logger_default.warn("\u963B\u6B62IP\u5730\u5740\u540D\u5355\uFF1A", blockedIPAddresses);
-          throw new APIException(exceptions_default2.API_REQUEST_HAS_BLOCKED);
+          throw new APIException(exceptions_default.API_REQUEST_HAS_BLOCKED);
         }
         ticket.ipAddressSwitchTimeIntervals.shift();
       }
@@ -1384,11 +1353,13 @@ var conversation_default2 = {
 };
 
 // src/api/routes/user.ts
+var import_lodash16 = __toESM(require("lodash"), 1);
 var user_default2 = {
   prefix: "/user",
   post: {
     "/register": async (request) => {
       const { username } = request.body;
+      request.validate("body.username", import_lodash16.default.isString);
       const ticket = await user_default.createTicket({
         username,
         ipAddress: request.remoteIP
@@ -1419,7 +1390,7 @@ var startupTime = performance.now();
   config_default.service.bindAddress && logger_default.success("service bind address:", config_default.service.bindAddress);
 })().then(
   () => logger_default.success(
-    `Service startup completed (${parseFloat((performance.now() - startupTime).toFixed(2))}ms)`
+    `Service startup completed (${Math.floor(performance.now() - startupTime)}ms)`
   )
 ).catch((err) => console.error(err));
 //# sourceMappingURL=index.cjs.map
