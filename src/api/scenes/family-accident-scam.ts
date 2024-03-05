@@ -1,4 +1,4 @@
-import { Scene } from '@/api/models/scene.ts';
+import { Scene } from '@/api/models/Scene.ts';
 
 class FamilyAccidentScam extends Scene {
 

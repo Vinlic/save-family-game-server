@@ -1,4 +1,4 @@
-import { Scene } from '@/api/models/scene.ts';
+import { Scene } from '@/api/models/Scene.ts';
 import giftRedemptionScam from "./gift-redemption-scam.ts";
 import resumeScam from "./resume-scam.ts";
 import teaPickingGirlScam from "./tea-picking-girl-scam.ts";

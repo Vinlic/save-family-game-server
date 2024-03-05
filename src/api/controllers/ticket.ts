@@ -1,9 +1,8 @@
 import _ from 'lodash';
 
-import { Ticket } from '@/api/models/user.ts';
+import Ticket from '@/api/models/Ticket.ts';
 import EX from '@/api/consts/exceptions.ts';
 import APIException from '@/lib/exceptions/APIException.ts';
-import Request from '@/lib/request/Request.js';
 import redis from '@/lib/redis.ts';
 import logger from '@/lib/logger.ts';
 import util from '@/lib/util.ts';
@@ -25,7 +24,7 @@ export default {
             username,
             ipAddress
         });
-        await redis.hmset(`ticket:${ticket.id}`, ticket.toRedisData());
+        await ticket.save();
         return ticket;
     },
 
@@ -40,11 +39,9 @@ export default {
             throw new APIException(EX.API_TICKET_EXPIRED);
         if(blockedIPAddresses.indexOf(request.remoteIP) != -1)
             throw new APIException(EX.API_REQUEST_HAS_BLOCKED);
-        let ticket = new Ticket();
-        const data = await redis.hmget(`ticket:${ticketId}`, ...Object.keys(ticket));
-        if(data == null)
+        const ticket = await Ticket.load(ticketId);
+        if(ticket == null)
             throw new APIException(EX.API_TICKET_EXPIRED);
-        ticket = Ticket.parseRedisData(data);
         if(request.remoteIP && request.remoteIP != ticket.ipAddress) {
             ticket.oldIPAddresses.push(ticket.ipAddress);
             ticket.ipAddress = request.remoteIP;
@@ -60,7 +57,7 @@ export default {
             }
             ticket.ipAddressSwitchTimeIntervals.push(util.unixTimestamp() - (ticket.createTime + totalInterval));
         }
-        await redis.hmset(`ticket:${ticket.id}`, ticket.toRedisData());
+        await ticket.save();
         return ticket;
     }
 

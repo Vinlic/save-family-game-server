@@ -3,22 +3,22 @@ import assert from 'assert';
 import _ from 'lodash';
 
 import Request from '@/lib/request/Request.ts';
-import user from '@/api/controllers/user.ts';
+import ticket from '@/api/controllers/ticket.ts';
 
 export default {
 
-    prefix: '/user',
+    prefix: '/ticket',
 
     post: {
         
-        '/register': async (request: Request) => {
+        '/create': async (request: Request) => {
             const { username } = request.body;
             request.validate('body.username', _.isString);
-            const ticket = await user.createTicket({
+            const _ticket = await ticket.createTicket({
                 username,
                 ipAddress: request.remoteIP
             });
-            return ticket;
+            return _ticket.toMaskedData();
         },
 
     }

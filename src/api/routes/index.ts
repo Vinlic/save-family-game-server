@@ -1,7 +1,7 @@
 import conversation from './conversation.ts';
-import user from './user.ts';
+import ticket from './ticket.ts';
 
 export default [
     conversation,
-    user
+    ticket
 ];

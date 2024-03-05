@@ -785,7 +785,7 @@ process.setMaxListeners(Infinity);
 process.on("uncaughtException", (err, origin) => {
   logger_default.error(`An unhandled error occurred: ${origin}`, err);
 });
-process.on("unhandledRejection", (_17, promise) => {
+process.on("unhandledRejection", (_18, promise) => {
   promise.catch((err) => logger_default.error("An unhandled rejection occurred:", err));
 });
 process.on("warning", (warning) => logger_default.warn("System warning: ", warning));
@@ -1181,90 +1181,8 @@ var Server = class {
 };
 var server_default = new Server();
 
-// src/lib/chat.ts
-import ZhipuAI from "zhipuai-sdk-nodejs-v4";
-var Chat = class {
-  client;
-  constructor() {
-    this.client = new ZhipuAI({
-      apiKey: config_default.api.chatCompletion.apiKey
-    });
-  }
-  async completions() {
-    const { model } = config_default.api.chatCompletion;
-    const result = await this.client.createCompletions({
-      model,
-      messages: [
-        {
-          "role": "user",
-          "content": "\u4F60\u597D"
-        }
-      ]
-    });
-    console.log(result);
-  }
-};
-var chat_default = new Chat();
-
-// src/api/routes/conversation.ts
-var conversation_default = {
-  prefix: "/conversation",
-  get: {},
-  post: {
-    "/create": async (request) => {
-      await chat_default.completions();
-    }
-  }
-};
-
-// src/api/routes/user.ts
-import _16 from "lodash";
-
-// src/api/controllers/user.ts
-import _15 from "lodash";
-
-// src/api/models/user.ts
+// src/api/models/Conversation.ts
 import _14 from "lodash";
-var Ticket = class _Ticket {
-  /** @type {string} 凭据ID */
-  id;
-  /** @type {string} 用户名 */
-  username;
-  /** @type {string} IP地址 */
-  ipAddress;
-  /** @type {string[]} 旧的IP地址列表 */
-  oldIPAddresses;
-  /** @type {number[]} IP地址切换时间间隔列表 */
-  ipAddressSwitchTimeIntervals;
-  /** @type {number} 创建时间 */
-  createTime;
-  constructor(options = {}) {
-    const { id, username, ipAddress, oldIPAddresses, ipAddressSwitchTimeIntervals, createTime } = options;
-    this.id = _14.defaultTo(id, util_default.uuid());
-    this.username = username;
-    this.ipAddress = ipAddress;
-    this.oldIPAddresses = _14.defaultTo(oldIPAddresses, []);
-    this.ipAddressSwitchTimeIntervals = _14.defaultTo(ipAddressSwitchTimeIntervals, []);
-    this.createTime = _14.defaultTo(createTime, util_default.unixTimestamp());
-  }
-  toRedisData() {
-    return {
-      ...this,
-      oldIPAddresses: JSON.stringify(this.oldIPAddresses),
-      ipAddressSwitchTimeIntervals: JSON.stringify(this.ipAddressSwitchTimeIntervals),
-      createTime: `${this.createTime}`
-    };
-  }
-  static parseRedisData(value = {}) {
-    const { oldIPAddresses, ipAddressSwitchTimeIntervals, createTime } = value || {};
-    return new _Ticket({
-      ...value,
-      oldIPAddresses: JSON.parse(oldIPAddresses),
-      ipAddressSwitchTimeIntervals: JSON.parse(ipAddressSwitchTimeIntervals),
-      createTime: Number(createTime)
-    });
-  }
-};
 
 // src/lib/redis.ts
 import { Redis as IORedis } from "ioredis";
@@ -1284,9 +1202,130 @@ var Redis = class extends IORedis {
 };
 var redis_default = new Redis();
 
-// src/api/controllers/user.ts
+// src/api/models/Conversation.ts
+var Conversation = class _Conversation {
+  type;
+  id;
+  name;
+  messages;
+  fromTicketId;
+  constructor(options) {
+    this.type = options.type;
+    this.id = options.id || util_default.uuid();
+    this.name = options.name;
+    this.messages = _14.defaultTo(options.messages, []);
+    this.fromTicketId = options.fromTicketId;
+  }
+  async save() {
+    const pipeline = redis_default.pipeline();
+    pipeline.hmset(`conv:${this.id}`, _14.omit(this, "messages"));
+    pipeline.del(`msgs:${this.id}`);
+    pipeline.lpush(`msgs:${this.id}`, ...this.messages.map((msg) => JSON.stringify(msg)));
+    await pipeline.exec();
+  }
+  static async load(convId) {
+    const [convResult, msgsResults] = await Promise.all([
+      redis_default.hmget(`conv:${convId}`, "type", "id", "name", "fromTicketId"),
+      redis_default.lrange(`msgs:${convId}`, 0, -1)
+    ]);
+    if (!convResult)
+      return null;
+    console.log(convResult, msgsResults);
+    const conv = new _Conversation({
+      ...convResult,
+      messages: msgsResults.map((result) => JSON.parse(result))
+    });
+    console.log(conv);
+    return conv;
+  }
+};
+
+// src/api/models/Message.ts
+var Message = class {
+  type;
+  id;
+  roleAvatarResId;
+  roleName;
+  content;
+  constructor(options) {
+    this.type = options.type;
+    this.id = options.id || util_default.uuid();
+    this.roleAvatarResId = options.roleAvatarResId;
+    this.roleName = options.roleName;
+    this.content = options.content;
+  }
+};
+
+// src/api/controllers/conversation.ts
+var conversation_default = {
+  async create(options) {
+    const conv = new Conversation(options);
+    conv.messages.push(new Message({
+      type: "self",
+      roleAvatarResId: "image",
+      roleName: "\u6D4B\u8BD5",
+      content: "\u5185\u5BB9"
+    }));
+    await conv.save();
+    return conv;
+  }
+};
+
+// src/api/controllers/ticket.ts
+import _16 from "lodash";
+
+// src/api/models/Ticket.ts
+import _15 from "lodash";
+var Ticket = class _Ticket {
+  /** 凭据ID */
+  ticketId;
+  /** 用户名 */
+  username;
+  /** IP地址 */
+  ipAddress;
+  /** 旧的IP地址列表 */
+  oldIPAddresses;
+  /** IP地址切换时间间隔列表 */
+  ipAddressSwitchTimeIntervals;
+  /** 创建时间 */
+  createTime;
+  constructor(options = {}) {
+    const { id, username, ipAddress, oldIPAddresses, ipAddressSwitchTimeIntervals, createTime } = options;
+    this.ticketId = _15.defaultTo(id, util_default.uuid());
+    this.username = username;
+    this.ipAddress = ipAddress;
+    this.oldIPAddresses = _15.defaultTo(oldIPAddresses, []);
+    this.ipAddressSwitchTimeIntervals = _15.defaultTo(ipAddressSwitchTimeIntervals, []);
+    this.createTime = _15.defaultTo(createTime, util_default.unixTimestamp());
+  }
+  async save() {
+    await redis_default.hmset(`tk:${this.ticketId}`, {
+      ...this,
+      oldIPAddresses: JSON.stringify(this.oldIPAddresses),
+      ipAddressSwitchTimeIntervals: JSON.stringify(this.ipAddressSwitchTimeIntervals),
+      createTime: `${this.createTime}`
+    });
+  }
+  static async load(ticketId) {
+    const data = await redis_default.hmget(`tk:${ticketId}`, "id", "username", "ipAddress", "oldIPAddresses", "ipAddressSwitchTimeIntervals", "createTime");
+    if (data == null)
+      return null;
+    const { oldIPAddresses, ipAddressSwitchTimeIntervals, createTime } = data;
+    return new _Ticket({
+      ...data,
+      oldIPAddresses: JSON.parse(oldIPAddresses),
+      ipAddressSwitchTimeIntervals: JSON.parse(ipAddressSwitchTimeIntervals),
+      createTime: Number(createTime)
+    });
+  }
+  toMaskedData() {
+    return _15.omit(this, "ipAddress", "oldIPAddresses", "ipAddressSwitchTimeIntervals");
+  }
+};
+
+// src/api/controllers/ticket.ts
 var blockedIPAddresses = [];
-var user_default = {
+var ticket_default = {
   /**
    * 创建凭据
    * 
@@ -1300,7 +1339,7 @@ var user_default = {
       username,
       ipAddress
     });
-    await redis_default.hmset(`ticket:${ticket.id}`, ticket.toRedisData());
+    await ticket.save();
     return ticket;
   },
   /**
@@ -1310,15 +1349,13 @@ var user_default = {
    */
   async checkTicket(request) {
     const ticketId = request.headers["ticket"];
-    if (!_15.isString(ticketId) || !/^[a-z0-9\-]{36}$/.test(ticketId))
+    if (!_16.isString(ticketId) || !/^[a-z0-9\-]{36}$/.test(ticketId))
       throw new APIException(exceptions_default.API_TICKET_EXPIRED);
     if (blockedIPAddresses.indexOf(request.remoteIP) != -1)
       throw new APIException(exceptions_default.API_REQUEST_HAS_BLOCKED);
-    let ticket = new Ticket();
-    const data = await redis_default.hmget(`ticket:${ticketId}`, ...Object.keys(ticket));
-    if (data == null)
+    const ticket = await Ticket.load(ticketId);
+    if (ticket == null)
       throw new APIException(exceptions_default.API_TICKET_EXPIRED);
-    ticket = Ticket.parseRedisData(data);
     if (request.remoteIP && request.remoteIP != ticket.ipAddress) {
       ticket.oldIPAddresses.push(ticket.ipAddress);
       ticket.ipAddress = request.remoteIP;
@@ -1334,31 +1371,55 @@ var user_default = {
       }
       ticket.ipAddressSwitchTimeIntervals.push(util_default.unixTimestamp() - (ticket.createTime + totalInterval));
     }
-    await redis_default.hmset(`ticket:${ticket.id}`, ticket.toRedisData());
+    await ticket.save();
     return ticket;
   }
 };
 
-// src/api/routes/user.ts
-var user_default2 = {
-  prefix: "/user",
+// src/api/routes/conversation.ts
+var conversation_default2 = {
+  prefix: "/conversation",
+  get: {
+    "/query": async (request) => {
+      const ticket = await ticket_default.checkTicket(request);
+      const conv = await Conversation.load("690683c1-db08-11ee-b099-6714f2f2611d");
+      return conv;
+    }
+  },
   post: {
-    "/register": async (request) => {
+    "/create": async (request) => {
+      const ticket = await ticket_default.checkTicket(request);
+      const conv = await conversation_default.create({
+        type: "",
+        name: "\u6D4B\u8BD5",
+        fromTicketId: ticket.ticketId
+      });
+      return conv;
+    }
+  }
+};
+
+// src/api/routes/ticket.ts
+import _17 from "lodash";
+var ticket_default2 = {
+  prefix: "/ticket",
+  post: {
+    "/create": async (request) => {
       const { username } = request.body;
-      request.validate("body.username", _16.isString);
-      const ticket = await user_default.createTicket({
+      request.validate("body.username", _17.isString);
+      const _ticket = await ticket_default.createTicket({
         username,
         ipAddress: request.remoteIP
       });
-      return ticket;
+      return _ticket.toMaskedData();
     }
   }
 };
 
 // src/api/routes/index.ts
 var routes_default = [
-  conversation_default,
-  user_default2
+  conversation_default2,
+  ticket_default2
 ];
 
 // src/index.ts
