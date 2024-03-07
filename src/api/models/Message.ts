@@ -1,4 +1,5 @@
 import IMessage from '@/api/interfaces/IMessage.ts';
+import ICompletionMessage from '@/lib/interfaces/ICompletionMessage.ts';
 import util from '@/lib/util.ts';
 
 export default class Message implements IMessage {
@@ -16,4 +17,12 @@ export default class Message implements IMessage {
         this.roleName = options.roleName;
         this.content = options.content;
     }
+
+    toCompletionMessage(): ICompletionMessage {
+        return {
+            role: 'user',
+            content: this.content
+        }
+    }
+
 }

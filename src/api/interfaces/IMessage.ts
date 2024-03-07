@@ -1,4 +1,4 @@
-export default interface Message {
+export default interface IMessage {
     type: string;
     id?: string;
     roleAvatarResId: string;

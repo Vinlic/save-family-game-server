@@ -1,5 +1,6 @@
 import ZhipuAI from 'zhipuai-sdk-nodejs-v4';
 
+import ICompletionMessage from '@/lib/interfaces/ICompletionMessage.ts';
 import config from './config.ts';
 
 class Chat {
@@ -12,16 +13,11 @@ class Chat {
         });
     }
 
-    async completions() {
+    async completions(messages: ICompletionMessage[]) {
         const { model } = config.api.chatCompletion;
         const result = await this.client.createCompletions({
             model,
-            messages: [
-                {
-                    'role': 'user',
-                    'content': '你好'
-                }
-            ]
+            messages
         });
         console.log(result);
     }

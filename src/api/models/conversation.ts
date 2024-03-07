@@ -7,18 +7,24 @@ import util from '@/lib/util.ts';
 
 export default class Conversation implements IConversation {
 
-    type: string;
     id: string;
+    type: string;
     name: string;
     messages: Message[];
+    sceneId: string;
     fromTicketId: string;
 
     constructor(options: IConversation) {
         this.type = options.type;
         this.id = options.id || util.uuid();
         this.name = options.name;
-        this.messages = _.defaultTo(options.messages, []);
+        this.messages = _.defaultTo(options.messages, []).map(v => new Message(v));
+        this.sceneId = options.sceneId;
         this.fromTicketId = options.fromTicketId;
+    }
+
+    toCompletionMessages() {
+        return this.messages.map(msg => msg.toCompletionMessage());
     }
 
     async save() {
@@ -31,17 +37,15 @@ export default class Conversation implements IConversation {
 
     static async load(convId: string) {
         const [convResult, msgsResults] = await Promise.all([
-            redis.hmget(`conv:${convId}`, 'type', 'id', 'name', 'fromTicketId'),
+            redis.hmget(`conv:${convId}`, 'type', 'id', 'name', 'sceneId', 'fromTicketId'),
             redis.lrange(`msgs:${convId}`, 0, -1)
         ]);
         if(!convResult)
             return null;
-        console.log(convResult, msgsResults);
         const conv = new Conversation({
             ...convResult,
             messages: msgsResults.map(result => JSON.parse(result))
         });
-        console.log(conv);
         return conv;
     }
 

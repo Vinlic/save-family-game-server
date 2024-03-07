@@ -1,20 +1,47 @@
-import type IConversation from '@/api/interfaces/IConversation.ts';
-import Conversation from '@/api/models/Conversation.ts';
-import redis from '@/lib/redis.ts';
-import Message from '../models/Message.ts';
+import type IConversation from "@/api/interfaces/IConversation.ts";
+import APIException from "@/lib/exceptions/APIException.ts";
+import EX from "@/api/consts/exceptions.ts";
+import Conversation from "@/api/models/Conversation.ts";
+import Message from "@/api/models/Message.ts";
+import { scenesMap } from "@/api/scenes/index.ts";
+import chat from "@/lib/chat.ts";
+
+async function query(convId: string) {
+  return await Conversation.load(convId);
+}
+
+async function create(options: IConversation) {
+  const scene = getScene(options.sceneId);
+  const conv = new Conversation({
+    ...options,
+    type: 'scene',
+    name: scene.name,
+    messages: scene.initialMessages
+  });
+  await conv.save();
+  return conv;
+}
+
+async function completion(convId: string, content: string) {
+  const conv = await query(convId);
+  conv.messages.push(new Message({
+    type: 'self',
+    roleName: '',
+    roleAvatarResId: '',
+    content: '您好'
+  }));
+  const messages = conv.toCompletionMessages();
+  await chat.completions(messages)
+}
+
+function getScene(sceneId: string) {
+  const scene = scenesMap[sceneId];
+  if (!scene) throw new APIException(EX.API_SCENE_NOT_FOUND);
+  return scene;
+}
 
 export default {
-
-    async create(options: IConversation) {
-        const conv = new Conversation(options);
-        conv.messages.push(new Message({
-            type: 'self',
-            roleAvatarResId: 'image',
-            roleName: '测试',
-            content: '内容'
-        }));
-        await conv.save();
-        return conv;
-    }
-
-}
+  query,
+  create,
+  completion,
+};

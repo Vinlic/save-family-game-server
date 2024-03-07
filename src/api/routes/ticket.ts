@@ -3,7 +3,7 @@ import assert from 'assert';
 import _ from 'lodash';
 
 import Request from '@/lib/request/Request.ts';
-import ticket from '@/api/controllers/ticket.ts';
+import ticket from '@/api/controllers/auth.ts';
 
 export default {
 

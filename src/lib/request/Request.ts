@@ -66,6 +66,7 @@ export default class Request {
             logger.warn(`Params ${key} invalid:`, err);
             throw new APIException(EX.API_REQUEST_PARAMS_INVALID, `Params ${key} invalid`);
         }
+        return this;
     }
 
 }

@@ -809,7 +809,7 @@ process.setMaxListeners(Infinity);
 process.on("uncaughtException", (err, origin) => {
   logger_default.error(`An unhandled error occurred: ${origin}`, err);
 });
-process.on("unhandledRejection", (_18, promise) => {
+process.on("unhandledRejection", (_20, promise) => {
   promise.catch((err) => logger_default.error("An unhandled rejection occurred:", err));
 });
 process.on("warning", (warning) => logger_default.warn("System warning: ", warning));
@@ -890,7 +890,8 @@ var exceptions_default = {
   API_TEST: [-9999, "API\u5F02\u5E38\u9519\u8BEF"],
   API_TICKET_EXPIRED: [-2e3, "\u51ED\u8BC1\u5DF2\u8FC7\u671F"],
   API_REQUEST_HAS_BLOCKED: [-2001, "\u8BF7\u6C42\u5DF2\u88AB\u963B\u6B62"],
-  API_REQUEST_PARAMS_INVALID: [-2002, "\u8BF7\u6C42\u53C2\u6570\u975E\u6CD5"]
+  API_REQUEST_PARAMS_INVALID: [-2002, "\u8BF7\u6C42\u53C2\u6570\u975E\u6CD5"],
+  API_SCENE_NOT_FOUND: [-2003, "\u573A\u666F\u4E0D\u5B58\u5728"]
 };
 
 // src/lib/request/Request.ts
@@ -946,6 +947,7 @@ var Request = class {
       logger_default.warn(`Params ${key} invalid:`, err);
       throw new APIException(exceptions_default.API_REQUEST_PARAMS_INVALID, `Params ${key} invalid`);
     }
+    return this;
   }
 };
 
@@ -1205,8 +1207,33 @@ var Server = class {
 };
 var server_default = new Server();
 
+// src/api/routes/conversation.ts
+var import_lodash18 = __toESM(require("lodash"), 1);
+
 // src/api/models/Conversation.ts
 var import_lodash14 = __toESM(require("lodash"), 1);
+
+// src/api/models/Message.ts
+var Message = class {
+  type;
+  id;
+  roleAvatarResId;
+  roleName;
+  content;
+  constructor(options) {
+    this.type = options.type;
+    this.id = options.id || util_default.uuid();
+    this.roleAvatarResId = options.roleAvatarResId;
+    this.roleName = options.roleName;
+    this.content = options.content;
+  }
+  toCompletionMessage() {
+    return {
+      role: "user",
+      content: this.content
+    };
+  }
+};
 
 // src/lib/redis.ts
 var import_ioredis = require("ioredis");
@@ -1228,17 +1255,22 @@ var redis_default = new Redis();
 
 // src/api/models/Conversation.ts
 var Conversation = class _Conversation {
-  type;
   id;
+  type;
   name;
   messages;
+  sceneId;
   fromTicketId;
   constructor(options) {
     this.type = options.type;
     this.id = options.id || util_default.uuid();
     this.name = options.name;
-    this.messages = import_lodash14.default.defaultTo(options.messages, []);
+    this.messages = import_lodash14.default.defaultTo(options.messages, []).map((v) => new Message(v));
+    this.sceneId = options.sceneId;
     this.fromTicketId = options.fromTicketId;
+  }
+  toCompletionMessages() {
+    return this.messages.map((msg) => msg.toCompletionMessage());
   }
   async save() {
     const pipeline = redis_default.pipeline();
@@ -1249,60 +1281,350 @@ var Conversation = class _Conversation {
   }
   static async load(convId) {
     const [convResult, msgsResults] = await Promise.all([
-      redis_default.hmget(`conv:${convId}`, "type", "id", "name", "fromTicketId"),
+      redis_default.hmget(`conv:${convId}`, "type", "id", "name", "sceneId", "fromTicketId"),
       redis_default.lrange(`msgs:${convId}`, 0, -1)
     ]);
     if (!convResult)
       return null;
-    console.log(convResult, msgsResults);
     const conv = new _Conversation({
       ...convResult,
       messages: msgsResults.map((result) => JSON.parse(result))
     });
-    console.log(conv);
     return conv;
   }
 };
 
-// src/api/models/Message.ts
-var Message = class {
-  type;
+// src/api/models/Scene.ts
+var import_lodash15 = __toESM(require("lodash"), 1);
+var Scene = class {
   id;
-  roleAvatarResId;
-  roleName;
-  content;
+  name;
+  description;
+  coverResId;
+  initialMessages;
   constructor(options) {
-    this.type = options.type;
     this.id = options.id || util_default.uuid();
-    this.roleAvatarResId = options.roleAvatarResId;
-    this.roleName = options.roleName;
-    this.content = options.content;
+    this.name = options.name;
+    this.description = options.description;
+    this.coverResId = options.coverResId;
+    this.initialMessages = import_lodash15.default.defaultTo(options.initialMessages, []).map((v) => new Message(v));
   }
 };
+
+// src/api/scenes/gift-redemption-scam.ts
+var giftRedemptionScam = class extends Scene {
+  constructor() {
+    super({
+      id: "gift-redemption-scam",
+      name: "\u6361\u5230\u5B9D\u4E86",
+      description: "\u5802\u5F1F\u5728\u56DE\u5BB6\u8DEF\u4E0A\u610F\u5916\u6361\u5230\u4E00\u5F20\u793C\u54C1\u5151\u6362\u5361\uFF0C\u626B\u63CF\u4E8C\u7EF4\u7801\u53EF\u5728\u7EBF\u5151\u6362\u4E00\u53F0\u9876\u914D\u7684iPhone 15 Pro Max\u624B\u673A\uFF0C\u5174\u594B\u7684\u4E0E\u4F60\u5206\u4EAB\u3002",
+      coverResId: "images.scene_gift_redemption_scam",
+      initialMessages: []
+    });
+  }
+};
+var gift_redemption_scam_default = new giftRedemptionScam();
+
+// src/api/scenes/resume-scam.ts
+var ResumeScam = class extends Scene {
+  constructor() {
+    super({
+      id: "resume-scam",
+      name: "\u6076\u9B54\u7684\u62DB\u8058",
+      description: "\u4F84\u5B50\u5927\u5B66\u6BD5\u4E1A\u5DF2\u7ECF\u4E00\u5E74\uFF0C\u5374\u6CA1\u627E\u5230\u5408\u5FC3\u610F\u7684\u5DE5\u4F5C\uFF0C\u4ECA\u5929\u62DB\u8058\u8F6F\u4EF6\u7A81\u7136\u6536\u5230\u4E00\u5BB6\u516C\u53F8\u53D1\u8D77\u7684\u804C\u4F4D\u6295\u9012\u9080\u8BF7\uFF0C\u5C97\u4F4D\u540D\u79F0\u662F\u201C\u9AD8\u7EA7\u5DE5\u7A0B\u5E08\u201D\uFF0C\u85AA\u8D44\u5F85\u9047\u76F8\u8F83\u540C\u7C7B\u5C97\u4F4D\u90FD\u9AD8\u4E0D\u5C11\uFF0C\u524D\u5F80\u73B0\u573A\u9762\u8BD5\u65F6\uFF0C\u5BF9\u65B9\u8981\u6C42\u5148\u4EA4\u4E00\u7B14\u57F9\u8BAD\u8D39\u7528\uFF0C\u57F9\u8BAD\u540E\u624D\u80FD\u4E0A\u5C97\u3002",
+      coverResId: "images.scene_resume_scam"
+    });
+  }
+};
+var resume_scam_default = new ResumeScam();
+
+// src/api/scenes/tea-picking-girl-scam.ts
+var TeaPickingGirlScam = class extends Scene {
+  constructor() {
+    super({
+      id: "tea-picking-girl-scam",
+      name: "\u66FF\u7237\u5356\u8336",
+      description: "\u8868\u54E5\u7684\u5FAE\u4FE1\u6536\u5230\u4E00\u6761\u597D\u53CB\u9A8C\u8BC1\u6D88\u606F\uFF0C\u9A8C\u8BC1\u540E\u5BF9\u65B9\u53D1\u6765\u6D88\u606F\uFF1A\u201C\u5C0F\u54E5\u54E5\uFF0C\u4E0D\u597D\u610F\u601D\u597D\u50CF\u52A0\u9519\u4EBA\u4E86\uFF0C\u4E0D\u8FC7\u80FD\u6210\u4E3A\u597D\u53CB\u5C31\u662F\u7F18\u5206\uFF0C\u5C31\u4E0D\u5220\u4E86\u54C8\uFF01\u201D\uFF0C\u8868\u54E5\u901A\u8FC7\u670B\u53CB\u5708\u770B\u5230\u5979\u6B63\u5728\u5E2E\u751F\u75C5\u7684\u7237\u7237\u6253\u7406\u8336\u573A\uFF0C\u7167\u7247\u4E2D\u7684\u5979\u957F\u76F8\u5341\u5206\u4FCA\u4FCF\uFF0C\u5F88\u5FEB\u4E8C\u4EBA\u5F00\u59CB\u4E86\u804A\u5929\u3002\u4E00\u4E2A\u661F\u671F\u540E\uFF0C\u7A81\u7136\u6536\u5230\u4E00\u6761\u6D88\u606F\uFF1A\u201C\u7237\u7237\u7684\u75C5\u6628\u665A\u7A81\u7136\u6076\u5316\uFF0C\u4F46\u662F\u624B\u672F\u8FD8\u5DEE\u4E00\u4E9B\u94B1\uFF0C\u6C42\u54E5\u54E5\u5E2E\u5E2E\u5FD9\u6551\u547D\uFF0C\u4E70\u5341\u7BB1\u8336\u53F6\uFF0C\u8FD9\u4E9B\u90FD\u662F\u7279\u7EA7\u8336\u53F6\uFF01\u201D",
+      coverResId: "images.scene_tea_picking_girl_scam"
+    });
+  }
+};
+var tea_picking_girl_scam_default = new TeaPickingGirlScam();
+
+// src/api/scenes/brushing-orders-scam.ts
+var OnlineShoppingScam = class extends Scene {
+  constructor() {
+    super({
+      id: "brushing-orders-scam",
+      name: "\u8D2A\u5C0F\u5931\u5927",
+      description: "\u59D0\u59D0\u6536\u5230\u4E00\u4E2A\u964C\u751F\u7684\u5FEB\u9012\uFF0C\u91CC\u9762\u6709\u4E00\u652F\u7B14\u548C\u4E00\u5F20\u201C\u56DE\u9988\u5BA2\u6237\u201D\u7684\u4E8C\u7EF4\u7801\u5361\u7247\uFF0C\u626B\u63CF\u540E\u8FDB\u5165\u4E00\u4E2A\u5237\u5355\u7FA4\uFF0C\u53D1\u73B0\u7FA4\u91CC\u6709\u4EBA\u53D1\u94FE\u63A5\uFF0C\u53EF\u4EE5\u9886\u4EFB\u52A1\u5237\u5355\u8D5A\u94B1\uFF0C\u4E8E\u662F\u4E0B\u8F7D\u4E86\u505A\u4EFB\u52A1\u7684APP\uFF0C\u505A\u4E00\u4E9B\u6DD8\u5B9D\u5237\u5355\u4EFB\u52A1\uFF0C\u8D5A\u5230\u4E86\u56DB\u4E94\u767E\u5143\u94B1\uFF0C\u5E76\u6210\u529F\u63D0\u73B0\u3002\u95F2\u4E0B\u6765\u65F6\u770B\u5230\u7FA4\u91CC\u53C8\u53D1\u5237\u5355\u4EFB\u52A1\uFF0C\u62A2\u5230\u4E86\u4E00\u4E2A1023\u5143\u4EFB\u52A1\u5355\uFF0C\u5F97\u77E5\u5237\u5B8C\u8FDE\u672C\u5E26\u5229\u53EF\u4EE5\u62FF\u52301330\u5143\uFF0C\u5FC3\u91CC\u975E\u5E38\u559C\u60A6\u3002",
+      coverResId: "images.scene_brushing_orders_scam"
+    });
+  }
+};
+var brushing_orders_scam_default = new OnlineShoppingScam();
+
+// src/api/scenes/internet-dating-scam.ts
+var InternetDatingScam = class extends Scene {
+  constructor() {
+    super({
+      id: "internet-dating-scam",
+      name: "\u4EA4\u53CB\u9700\u8C28\u614E",
+      description: "\u5802\u59B9\u5728\u6E38\u620F\u4E2D\u7ED3\u8BC6\u4E86\u4E00\u4E2A\u7ECF\u5E38\u8BED\u97F3\u966A\u73A9\u7684\u670B\u53CB\uFF0C\u5BF9\u65B9\u5BCC\u6709\u78C1\u6027\u7684\u58F0\u97F3\u548C\u5E7D\u9ED8\u611F\u6210\u529F\u4FD8\u83B7\u4E86\u7684\u5FC3\uFF0C\u5F88\u5FEB\u4E24\u4EBA\u6210\u4E3A\u7537\u5973\u670B\u53CB\uFF0C\u7537\u53CB\u4E5F\u7ECF\u5E38\u7ED9\u5979\u9001\u6E38\u620F\u76AE\u80A4\u548C\u88C5\u5907\uFF0C\u7136\u800C\uFF0C\u4E00\u5929\uFF0C\u7537\u53CB\u7A81\u7136\u63D0\u51FA\u8981\u5979\u5E2E\u5FD9\u6295\u8D44\u4E00\u4E2A\u865A\u62DF\u8D27\u5E01\u9879\u76EE\uFF0C\u58F0\u79F0\u6709\u5185\u5E55\u6D88\u606F\uFF0C\u53EF\u4EE5\u83B7\u5F97\u9AD8\u989D\u56DE\u62A5\u3002\u540C\u65F6\u8FD8\u5C55\u793A\u4E86\u4E00\u4E9B\u770B\u4F3C\u4E13\u4E1A\u7684\u56FE\u8868\u548C\u6570\u636E\u5206\u6790\uFF0C\u4EE5\u53CA\u4E00\u4E9B\u6210\u529F\u7684\u4EA4\u6613\u8BB0\u5F55\u3002",
+      coverResId: "images.scene_internet_dating_scam"
+    });
+  }
+};
+var internet_dating_scam_default = new InternetDatingScam();
+
+// src/api/scenes/nude-chat-scam.ts
+var NudeChatScam = class extends Scene {
+  constructor() {
+    super({
+      id: "nude-chat-scam",
+      name: "\u8272\u8FF7\u5FC3\u7A8D",
+      description: "\u6DF1\u591C\uFF0C\u5802\u5F1F\u5728\u6E38\u620F\u4E2D\u6536\u5230\u4E00\u6761\u79C1\u4FE1\uFF1A\u201C\u5F1F\u5F1F\uFF0C\u59D0\u59D0\u597D\u65E0\u804A\u597D\u5BC2\u5BDE\uFF0C\u626B\u4E8C\u7EF4\u7801\u4E0B\u8F7D\u8FD9\u4E2AAPP\u8DDF\u6211\u89C6\u9891\u804A\u5929\uFF0C\u6709\u60CA\u559C\u54DF\uFF01\u201D\uFF0C\u201C\u89C6\u9891\u804A\u5929\u201D\u540E\u5BF9\u65B9\u5374\u53D1\u8FC7\u6765\u5802\u5F1F\u624B\u673A\u7684\u901A\u8BAF\u5F55\u5217\u8868\u548C\u5927\u5C3A\u5EA6\u7684\u7167\u7247\u5A01\u80C1\u7D22\u8981\u201C\u5C01\u53E3\u8D39\u201D5000\u5143\u3002",
+      coverResId: "images.scene_nude_chat_scam"
+    });
+  }
+};
+var nude_chat_scam_default = new NudeChatScam();
+
+// src/api/scenes/lost-express-scam.ts
+var LostExpressScam = class extends Scene {
+  constructor() {
+    super({
+      id: "lost-express-scam",
+      name: "\u6211\u5FEB\u9012\u4E22\u4E86\uFF1F",
+      description: "\u59B9\u59B9\u63A5\u5230\u5FEB\u9012\u516C\u53F8\u5BA2\u670D\u7535\u8BDD\uFF0C\u79F0\u5305\u88F9\u5728\u8F6C\u8FD0\u8FC7\u7A0B\u4E2D\u4E22\u5931\uFF0C\u6839\u636E\u516C\u53F8\u89C4\u5B9A\u9700\u8981\u8FDB\u884C\u53CC\u500D\u7406\u8D54\uFF0C\u5BF9\u65B9\u51C6\u786E\u7684\u8BF4\u51FA\u4E86\u5FEB\u9012\u5355\u53F7\u548C\u6536\u4EF6\u4EBA\u4FE1\u606F\uFF0C\u9700\u8981\u4E0B\u8F7D\u6307\u5B9A\u7684\u7406\u8D54APP\u5E76\u8FDB\u884C\u5C4F\u5E55\u5171\u4EAB\u6307\u5BFC\u64CD\u4F5C\u3002",
+      coverResId: "images.scene_lost_express_scam"
+    });
+  }
+};
+var lost_express_scam_default = new LostExpressScam();
+
+// src/api/scenes/family-accident-scam.ts
+var FamilyAccidentScam = class extends Scene {
+  constructor() {
+    super({
+      id: "family-accident-scam",
+      name: "\u5988\uFF01\u6211\u51FA\u8F66\u7978\u4E86",
+      description: "\u5E38\u5E74\u5728\u5916\u5DE5\u4F5C\u7684\u8868\u59B9\u7A81\u7136\u7ED9\u8205\u5988\u6253\u6765\u7535\u8BDD\uFF1A\u201C\u5988\uFF01\u6211\u51FA\u8F66\u7978\u4E86\uFF01\u8981\u7D27\u6025\u624B\u672F\uFF0C\u533B\u9662\u6536\u6B3E\u8D26\u53F7\u5DF2\u7ECF\u53D1\u7ED9\u4F60\u4E86\uFF0C\u8981\u5148\u62532\u4E07\u5757\u94B1\uFF01\u201D\uFF0C\u542C\u7B52\u4E2D\u786E\u5B9E\u662F\u5973\u513F\u7684\u58F0\u97F3\uFF0C\u4E5F\u8BB8\u662F\u53D7\u4E86\u91CD\u4F24\u58F0\u97F3\u542C\u4E0A\u53BB\u6709\u4E9B\u5636\u54D1\u3002",
+      coverResId: "images.scene_family_accident_scam"
+    });
+  }
+};
+var family_accident_scam_default = new FamilyAccidentScam();
+
+// src/api/scenes/mental-manipulation-scam.ts
+var MentalManipulationScam = class extends Scene {
+  constructor() {
+    super({
+      id: "mental-manipulation-scam",
+      name: "\u63D0\u7EBF\u6728\u5076",
+      description: "\u5927\u54E5\u6BCF\u5929\u62B1\u7740\u624B\u673A\u804A\u5929\uFF0C\u636E\u8BF4\u5728\u548C\u7F51\u4E0A\u521A\u5904\u7684\u5973\u53CB\u804A\u5929\uFF0C\u5C31\u662F\u60C5\u7EEA\u4E0D\u592A\u7A33\u5B9A\uFF0C\u65F6\u800C\u60B2\u4F24\u6CAE\u4E27\u3001\u65F6\u800C\u5FEB\u4E50\u5174\u594B\uFF0C\u8FD1\u6765\u8FD8\u627E\u4E86\u8BB8\u591A\u4EBA\u501F\u94B1\uFF0C\u521A\u521A\u8FC7\u6765\u627E\u4F60\uFF1A\u201C\u8001\u4E09\uFF0C\u6709\u95F2\u94B1\u4E0D\uFF0C\u5973\u670B\u53CB\u8BF4\u518D\u8F6C5000\u7ED9\u4ED6\u4E70\u4E2A\u5305\uFF0C\u6211\u8FD8\u5DEE1300\uFF0C\u5979\u8FC7\u4E24\u4E2A\u6708\u5C31\u6765\u89C1\u6211\u4E86\uFF01\u201D",
+      coverResId: "images.scene_mental_manipulation_scam"
+    });
+  }
+};
+var mental_manipulation_scam_default = new MentalManipulationScam();
+
+// src/api/scenes/impersonating-public-security-procuratorate-scam.ts
+var ImpersonatingPublicSecurityProcuratorateScam = class extends Scene {
+  constructor() {
+    super({
+      id: "impersonating-public-security-procuratorate-scam",
+      name: "\u5582\uFF1F\u6211\u662F\u8B66\u5BDF\uFF01",
+      description: "\u5728\u5916\u5DE5\u4F5C\u7684\u54E5\u54E5\u7A81\u7136\u63A5\u5230\u7535\u8BDD\uFF0C\u5BF9\u65B9\u81EA\u79F0\u6240\u5728\u8F96\u533A\u6D3E\u51FA\u6240\u6C11\u8B66\uFF0C\u4E00\u8D77\u8BC8\u9A97\u6D17\u94B1\u72AF\u7F6A\u4E0E\u4ED6\u6709\u5173\uFF0C\u9700\u8981\u914D\u5408\u8C03\u67E5\uFF0C\u8981\u6C42\u4E0B\u8F7D\u89C6\u9891\u4F1A\u8BAEAPP\u5E76\u8FDB\u884C\u5C4F\u5E55\u5171\u4EAB\uFF0C\u9A8C\u8BC1\u8D44\u91D1\u60C5\u51B5\u540E\u8F6C\u5165\u4E34\u65F6\u5B89\u5168\u8D26\u6237\u3002",
+      coverResId: "images.scene_impersonating_public_security_procuratorate_scam"
+    });
+  }
+};
+var impersonating_public_security_procuratorate_scam_default = new ImpersonatingPublicSecurityProcuratorateScam();
+
+// src/api/scenes/online-loan-scam.ts
+var OnlineLoanScam = class extends Scene {
+  constructor() {
+    super({
+      id: "online-loan-scam",
+      name: "\u88AB\u5957\u8DEF\u8D37\u5305\u56F4\u4E86",
+      description: "\u5C0F\u59D1\u662F\u6708\u5149\u65CF\uFF0C\u524D\u6BB5\u65F6\u95F4\u4FE1\u7528\u5361\u4E5F\u5237\u7206\u4E86\uFF0C\u521A\u521A\u6536\u5230\u77ED\u4FE1\uFF1A\u201C\u5C0A\u656C\u7684\u5BA2\u6237\uFF0C\u7531\u4E8E\u653F\u7B56\u653E\u5BBD\uFF0C\u60A8\u5728\u6211\u884C\u53EF\u529E\u7406498000\u5143\u501F\u6B3E\uFF0C\u53EF\u7528\u4E8E\u65E5\u5E38\u6D88\u8D39\u3001\u751F\u610F\u5468\u8F6C\u3001\u623F\u5C4B\u88C5\u4FEE\uFF0C\u7533\u8BF7\u8BF7\u56DE\u590D1\u3002\u201D",
+      coverResId: "images.scene_online_loan_scam"
+    });
+  }
+};
+var online_loan_scam_default = new OnlineLoanScam();
+
+// src/api/scenes/mlm-scam.ts
+var MLMScam = class extends Scene {
+  constructor() {
+    super({
+      id: "mlm-scam",
+      name: "\u8C01\u662F\u63A5\u76D8\u4FA0\uFF1F",
+      description: "\u8868\u5F1F\u6536\u5230\u670B\u53CB\u53D1\u6765\u7684\u6D88\u606F\uFF1A\u201C\u6211\u5728XX\u5546\u57CE\u62A2\u8D2D\u8FDB\u53E3\u7EA2\u9152\u7136\u540E\u8F6C\u624B\u8D5A\u5DEE\u4EF7\uFF0C\u95F2\u7740\u6CA1\u4E8B\u64CD\u4F5C\u64CD\u4F5C\u4E00\u4E2A\u6708\u5DF2\u7ECF\u8D5A\u4E86\u4E24\u4E07\u591A\u4E86\uFF0C\u5FEB\u53BB\u4E0B\u8F7DAPP\u4E0A\u8F66\u554A\uFF01\u201D\uFF0C\u63A5\u7740\u53D1\u6765\u4E0B\u8F7DAPP\u7684\u4E8C\u7EF4\u7801\u3002",
+      coverResId: "images.scene_mlm_scam"
+    });
+  }
+};
+var mlm_scam_default = new MLMScam();
+
+// src/api/scenes/ai-vtuber-scam.ts
+var AIVtuberScam = class extends Scene {
+  constructor() {
+    super({
+      id: "ai-vtuber-scam",
+      name: "\u4EA6\u771F\u4EA6\u5047",
+      description: "\u8001\u7238\u7684\u597D\u53CB\u53D1\u6765\u4E00\u6761\u94FE\u63A5\uFF1A\u201CXX\u9080\u8BF7\u60A8\u89C6\u9891\u901A\u8BDD\uFF0C\u8BF7\u5C3D\u5FEB\u70B9\u51FB\u63A5\u542C\u201D\uFF0C\u70B9\u51FB\u540E\u5C4F\u5E55\u5374\u6620\u5165\u4E86\u81EA\u5DF1\u5F1F\u5F1F\u7684\u8138\uFF0C\u867D\u7136\u611F\u89C9\u5F88\u5947\u602A\uFF0C\u4F46\u662F\u8FD9\u8138\u786E\u5B9E\u4E00\u6A21\u4E00\u6837\uFF0C\u751A\u81F3\u58F0\u97F3\u4E5F\u4E00\u6837\uFF0C\u5F88\u5FEB\u5C31\u6253\u6D88\u4E86\u56F0\u60D1\uFF0C\u201C\u5F1F\u5F1F\u201D\u8BF4\uFF1A\u201C\u5927\u54E5\uFF0C\u6211\u5FAE\u4FE1\u88AB\u5C01\u53F7\u4E86\uFF0C\u7528\u6211\u670B\u53CB\u7684\u5FAE\u4FE1\u8DDF\u4F60\u804A\u3002\u6211\u51C6\u5907\u4E70\u8F66\uFF0C\u73B0\u5728\u5728\u94F6\u884C\u529E\u8D37\u6B3E\uFF0C\u94F6\u884C\u8BF4\u8981\u9A8C\u8BC1\u6211\u7684\u8D44\u91D1\u518D\u786E\u5B9A\u7ED9\u6211\u653E\u8D37\uFF0C\u5148\u8F6C10\u4E07\u5757\u5230\u6211\u53D1\u7ED9\u4F60\u7684\u94F6\u884C\u5361\u8D26\u53F7\uFF0C\u9A8C\u5B8C\u540E\u6211\u518D\u8F6C\u56DE\u7ED9\u4F60\uFF01\u8981\u572810\u5206\u949F\u5185\u8F6C\u5B8C\uFF0C\u4E0D\u7136\u5C31\u8981\u7B49\u4E00\u5468\u540E\u4E86\uFF01\u201D",
+      coverResId: "images.scene_ai_vtuber_scam"
+    });
+  }
+};
+var ai_vtuber_scam_default = new AIVtuberScam();
+
+// src/api/scenes/pension-product-scam.ts
+var PensionProductScam = class extends Scene {
+  constructor() {
+    super({
+      id: "pension-product-scam",
+      name: "\u4F55\u4EE5\u517B\u8001",
+      description: "\u5C0F\u533A\u9644\u8FD1\u7A81\u7136\u6446\u8D77\u4E86\u7EA2\u5E03\u684C\uFF0C\u4E00\u5E45\u5199\u7740\u201C\u517B\u8001\u9662\u5DE5\u7A0B\u7B79\u5EFA\u201D\u6A2A\u5E45\u7AD6\u7ACB\u5728\u4E2D\u592E\uFF0C\u51E0\u4E2A\u201C\u5DE5\u4F5C\u4EBA\u5458\u201D\u7AD9\u5728\u524D\u9762\u5411\u8FC7\u5F80\u7684\u8001\u5E74\u4EBA\u53D1\u653E\u4F20\u5355\uFF0C\u7237\u7237\u62FF\u7740\u4F20\u5355\u56DE\u6765\uFF1A\u201C\u4F60\u4EEC\u770B\u8FD9\u4E2A\u517B\u8001\u9662\u9879\u76EE\uFF0C\u53EA\u8981\u6295\u8D445\u4E07\u4EE5\u4E0A\u5C31\u53EF\u4EE5\u5165\u80A1\uFF0C\u5EFA\u6210\u540E\u53EF\u4EE5\u514D\u8D39\u5165\u4F4F\uFF0C\u8FD8\u53EF\u4EE5\u83B7\u5F97\u5206\u7EA2\u548C\u6C7D\u8F66\u5956\u52B1\uFF01\u201D",
+      coverResId: "images.scene_pension_product_scam"
+    });
+  }
+};
+var pension_product_scam_default = new PensionProductScam();
+
+// src/api/scenes/health-product-scam.ts
+var HealthProductScam = class extends Scene {
+  constructor() {
+    super({
+      id: "health-product-scam",
+      name: "\u5305\u6CBB\u767E\u75C5",
+      description: "\u9644\u8FD1\u7684\u95F2\u7F6E\u5382\u623F\u7A81\u7136\u70ED\u95F9\u8D77\u6765\uFF0C\u5976\u5976\u62FF\u7740\u4E00\u5F20\u4FDD\u5065\u54C1\u5BA3\u4F20\u6D77\u62A5\u56DE\u5230\u5BB6\uFF1A\u201C\u5BF9\u9762\u90A3\u6765\u4E86\u4E2A\u4E2D\u79D1\u9662\u9662\u58EB\uFF01\u8BB2\u5F97\u597D\u4E13\u4E1A\uFF01\u8FD8\u6709\u6B3E\u9650\u91CF\u5341\u74F6\u7684\u9632\u764C\u836F\uFF0C\u4E0D\u8DDF\u4F60\u8BF4\u4E86\u6211\u8981\u53BB\u62FF\u70B9\u73B0\u91D1\uFF01\u201D",
+      coverResId: "images.scene_health_product_scam"
+    });
+  }
+};
+var health_product_scam_default = new HealthProductScam();
+
+// src/api/scenes/witch-scam.ts
+var WitchScam = class extends Scene {
+  constructor() {
+    super({
+      id: "witch-scam",
+      name: "\u5FC3\u4E2D\u6709\u9B3C",
+      description: "\u5927\u59E8\u4E00\u5BB6\u4EBA\u51FA\u56FD\u65C5\u6E38\u5F52\u6765\u4E0D\u5230\u4E24\u5468\uFF0C\u8868\u4F84\u5973\u7A81\u7136\u53D1\u70E7\uFF0C\u62D2\u7EDD\u53BB\u533B\u9662\uFF0C\u6027\u683C\u53D8\u5F97\u5341\u5206\u6267\u62D7\uFF0C\u773C\u795E\u7A7A\u6D1E\uFF0C\u524D\u8A00\u4E0D\u642D\u540E\u8BED\u7ECF\u5E38\u8BF4\u80E1\u8BDD\uFF0C\u5BB6\u91CC\u4EBA\u90FD\u8BF4\u201C\u4E2D\u90AA\u201D\uFF0C\u662F\u5728\u56FD\u5916\u78B0\u4E0A\u201C\u810F\u4E1C\u897F\u201D\u4E86\uFF0C\u51C6\u5907\u8BF7\u4E00\u4F4D\u795E\u5A46\u8FC7\u6765\u770B\u770B\uFF0C\u4F46\u4F60\u4ECE\u7F51\u4E0A\u67E5\u8BE2\u8D44\u6599\u6000\u7591\u8868\u4F84\u5973\u53EF\u80FD\u662F\u60A3\u4E0A\u8111\u708E\u3002",
+      coverResId: "images.scene_witch_scam"
+    });
+  }
+};
+var witch_scam_default = new WitchScam();
+
+// src/api/scenes/index.ts
+var scenes = [
+  // 礼品兑换骗局
+  gift_redemption_scam_default,
+  // 招聘骗局
+  resume_scam_default,
+  // 采茶女骗局
+  tea_picking_girl_scam_default,
+  // 刷单骗局
+  brushing_orders_scam_default,
+  // 网络交友骗局
+  internet_dating_scam_default,
+  // 裸聊骗局
+  nude_chat_scam_default,
+  // 快递丢失骗局
+  lost_express_scam_default,
+  // 家人意外骗局
+  family_accident_scam_default,
+  // 精神操控骗局
+  mental_manipulation_scam_default,
+  // 冒充公检法骗局
+  impersonating_public_security_procuratorate_scam_default,
+  // 网贷骗局
+  online_loan_scam_default,
+  // 传销骗局
+  mlm_scam_default,
+  // AI数字人骗局
+  ai_vtuber_scam_default,
+  // 养老产品骗局
+  pension_product_scam_default,
+  // 保健品骗局
+  health_product_scam_default,
+  // 神婆骗局
+  witch_scam_default
+];
+var _scenesMap = {};
+scenes.forEach((scene) => _scenesMap[scene.id] = scene);
+var scenesMap = _scenesMap;
+
+// src/lib/chat.ts
+var import_zhipuai_sdk_nodejs_v4 = __toESM(require("zhipuai-sdk-nodejs-v4"), 1);
+var Chat = class {
+  client;
+  constructor() {
+    this.client = new import_zhipuai_sdk_nodejs_v4.default({
+      apiKey: config_default.api.chatCompletion.apiKey
+    });
+  }
+  async completions(messages) {
+    const { model } = config_default.api.chatCompletion;
+    const result = await this.client.createCompletions({
+      model,
+      messages
+    });
+    console.log(result);
+  }
+};
+var chat_default = new Chat();
 
 // src/api/controllers/conversation.ts
+async function query(convId) {
+  return await Conversation.load(convId);
+}
+async function create(options) {
+  const scene = getScene(options.sceneId);
+  const conv = new Conversation({
+    ...options,
+    type: "scene",
+    name: scene.name,
+    messages: scene.initialMessages
+  });
+  await conv.save();
+  return conv;
+}
+async function completion(convId, content) {
+  const conv = await query(convId);
+  conv.messages.push(new Message({
+    type: "self",
+    roleName: "",
+    roleAvatarResId: "",
+    content: "\u60A8\u597D"
+  }));
+  const messages = conv.toCompletionMessages();
+  await chat_default.completions(messages);
+}
+function getScene(sceneId) {
+  const scene = scenesMap[sceneId];
+  if (!scene)
+    throw new APIException(exceptions_default.API_SCENE_NOT_FOUND);
+  return scene;
+}
 var conversation_default = {
-  async create(options) {
-    const conv = new Conversation(options);
-    conv.messages.push(new Message({
-      type: "self",
-      roleAvatarResId: "image",
-      roleName: "\u6D4B\u8BD5",
-      content: "\u5185\u5BB9"
-    }));
-    await conv.save();
-    return conv;
-  }
+  query,
+  create,
+  completion
 };
 
-// src/api/controllers/ticket.ts
-var import_lodash16 = __toESM(require("lodash"), 1);
+// src/api/controllers/auth.ts
+var import_lodash17 = __toESM(require("lodash"), 1);
 
 // src/api/models/Ticket.ts
-var import_lodash15 = __toESM(require("lodash"), 1);
+var import_lodash16 = __toESM(require("lodash"), 1);
 var Ticket = class _Ticket {
   /** 凭据ID */
-  ticketId;
+  id;
   /** 用户名 */
   username;
   /** IP地址 */
@@ -1313,25 +1635,25 @@ var Ticket = class _Ticket {
   ipAddressSwitchTimeIntervals;
   /** 创建时间 */
   createTime;
-  constructor(options = {}) {
+  constructor(options) {
     const { id, username, ipAddress, oldIPAddresses, ipAddressSwitchTimeIntervals, createTime } = options;
-    this.ticketId = import_lodash15.default.defaultTo(id, util_default.uuid());
+    this.id = import_lodash16.default.defaultTo(id, util_default.uuid());
     this.username = username;
     this.ipAddress = ipAddress;
-    this.oldIPAddresses = import_lodash15.default.defaultTo(oldIPAddresses, []);
-    this.ipAddressSwitchTimeIntervals = import_lodash15.default.defaultTo(ipAddressSwitchTimeIntervals, []);
-    this.createTime = import_lodash15.default.defaultTo(createTime, util_default.unixTimestamp());
+    this.oldIPAddresses = import_lodash16.default.defaultTo(oldIPAddresses, []);
+    this.ipAddressSwitchTimeIntervals = import_lodash16.default.defaultTo(ipAddressSwitchTimeIntervals, []);
+    this.createTime = import_lodash16.default.defaultTo(createTime, util_default.unixTimestamp());
   }
   async save() {
-    await redis_default.hmset(`tk:${this.ticketId}`, {
+    await redis_default.hmset(`tk:${this.id}`, {
       ...this,
       oldIPAddresses: JSON.stringify(this.oldIPAddresses),
       ipAddressSwitchTimeIntervals: JSON.stringify(this.ipAddressSwitchTimeIntervals),
       createTime: `${this.createTime}`
     });
   }
-  static async load(ticketId) {
-    const data = await redis_default.hmget(`tk:${ticketId}`, "id", "username", "ipAddress", "oldIPAddresses", "ipAddressSwitchTimeIntervals", "createTime");
+  static async load(id) {
+    const data = await redis_default.hmget(`tk:${id}`, "id", "username", "ipAddress", "oldIPAddresses", "ipAddressSwitchTimeIntervals", "createTime");
     if (data == null)
       return null;
     const { oldIPAddresses, ipAddressSwitchTimeIntervals, createTime } = data;
@@ -1343,95 +1665,100 @@ var Ticket = class _Ticket {
     });
   }
   toMaskedData() {
-    return import_lodash15.default.omit(this, "ipAddress", "oldIPAddresses", "ipAddressSwitchTimeIntervals");
+    return import_lodash16.default.omit(this, "ipAddress", "oldIPAddresses", "ipAddressSwitchTimeIntervals");
   }
 };
 
-// src/api/controllers/ticket.ts
+// src/api/controllers/auth.ts
 var blockedIPAddresses = [];
-var ticket_default = {
-  /**
-   * 创建凭据
-   * 
-   * @param {Object} options 选项
-   * @param {string} options.username 用户名称
-   * @param {string} options.ipAddress IP地址
-   */
-  async createTicket(options = {}) {
-    const { username, ipAddress } = options;
-    const ticket = new Ticket({
-      username,
-      ipAddress
-    });
-    await ticket.save();
-    return ticket;
-  },
-  /**
-   * 校验凭据
-   * 
-   * @param {Request} request 请求对象
-   */
-  async checkTicket(request) {
-    const ticketId = request.headers["ticket"];
-    if (!import_lodash16.default.isString(ticketId) || !/^[a-z0-9\-]{36}$/.test(ticketId))
-      throw new APIException(exceptions_default.API_TICKET_EXPIRED);
-    if (blockedIPAddresses.indexOf(request.remoteIP) != -1)
-      throw new APIException(exceptions_default.API_REQUEST_HAS_BLOCKED);
-    const ticket = await Ticket.load(ticketId);
-    if (ticket == null)
-      throw new APIException(exceptions_default.API_TICKET_EXPIRED);
-    if (request.remoteIP && request.remoteIP != ticket.ipAddress) {
-      ticket.oldIPAddresses.push(ticket.ipAddress);
-      ticket.ipAddress = request.remoteIP;
-      const totalInterval = ticket.ipAddressSwitchTimeIntervals.reduce((total, interval) => total + interval, 0);
-      if (ticket.ipAddressSwitchTimeIntervals.length >= 10) {
-        const averageInterval = totalInterval / ticket.ipAddressSwitchTimeIntervals.length;
-        if (averageInterval < 1800) {
-          [...ticket.oldIPAddresses, ticket.ipAddress].forEach((ip) => blockedIPAddresses.push(ip));
-          logger_default.warn("\u963B\u6B62IP\u5730\u5740\u540D\u5355\uFF1A", blockedIPAddresses);
-          throw new APIException(exceptions_default.API_REQUEST_HAS_BLOCKED);
-        }
-        ticket.ipAddressSwitchTimeIntervals.shift();
+async function createTicket(options = {}) {
+  const { username, ipAddress } = options;
+  const ticket = new Ticket({
+    username,
+    ipAddress
+  });
+  await ticket.save();
+  return ticket;
+}
+async function checkTicket(request) {
+  const ticketId = request.headers["ticket"];
+  if (!import_lodash17.default.isString(ticketId) || !/^[a-z0-9\-]{36}$/.test(ticketId))
+    throw new APIException(exceptions_default.API_TICKET_EXPIRED);
+  if (blockedIPAddresses.indexOf(request.remoteIP) != -1)
+    throw new APIException(exceptions_default.API_REQUEST_HAS_BLOCKED);
+  const ticket = await Ticket.load(ticketId);
+  if (ticket == null)
+    throw new APIException(exceptions_default.API_TICKET_EXPIRED);
+  if (request.remoteIP && request.remoteIP != ticket.ipAddress) {
+    ticket.oldIPAddresses.push(ticket.ipAddress);
+    ticket.ipAddress = request.remoteIP;
+    const totalInterval = ticket.ipAddressSwitchTimeIntervals.reduce(
+      (total, interval) => total + interval,
+      0
+    );
+    if (ticket.ipAddressSwitchTimeIntervals.length >= 10) {
+      const averageInterval = totalInterval / ticket.ipAddressSwitchTimeIntervals.length;
+      if (averageInterval < 1800) {
+        [...ticket.oldIPAddresses, ticket.ipAddress].forEach(
+          (ip) => blockedIPAddresses.push(ip)
+        );
+        logger_default.warn("\u963B\u6B62IP\u5730\u5740\u540D\u5355\uFF1A", blockedIPAddresses);
+        throw new APIException(exceptions_default.API_REQUEST_HAS_BLOCKED);
       }
-      ticket.ipAddressSwitchTimeIntervals.push(util_default.unixTimestamp() - (ticket.createTime + totalInterval));
+      ticket.ipAddressSwitchTimeIntervals.shift();
     }
-    await ticket.save();
-    return ticket;
+    ticket.ipAddressSwitchTimeIntervals.push(
+      util_default.unixTimestamp() - (ticket.createTime + totalInterval)
+    );
   }
+  await ticket.save();
+  return ticket;
+}
+var auth_default = {
+  createTicket,
+  checkTicket
 };
 
 // src/api/routes/conversation.ts
 var conversation_default2 = {
   prefix: "/conversation",
   get: {
-    "/query": async (request) => {
-      const ticket = await ticket_default.checkTicket(request);
-      const conv = await Conversation.load("690683c1-db08-11ee-b099-6714f2f2611d");
+    "/:id": async (request) => {
+      await auth_default.checkTicket(request);
+      request.validate("params.id", import_lodash18.default.isString);
+      const { id: convId } = request.params;
+      const conv = await conversation_default.query(convId);
       return conv;
     }
   },
   post: {
     "/create": async (request) => {
-      const ticket = await ticket_default.checkTicket(request);
+      const ticket = await auth_default.checkTicket(request);
+      request.validate("body.sceneId", import_lodash18.default.isString);
+      const { sceneId } = request.body;
       const conv = await conversation_default.create({
-        type: "",
-        name: "\u6D4B\u8BD5",
-        fromTicketId: ticket.ticketId
+        sceneId,
+        fromTicketId: ticket.id
       });
       return conv;
+    },
+    "/:id/completion": async (request) => {
+      await auth_default.checkTicket(request);
+      request.validate("body.content", import_lodash18.default.isString);
+      const { content } = request.body;
     }
   }
 };
 
 // src/api/routes/ticket.ts
-var import_lodash17 = __toESM(require("lodash"), 1);
-var ticket_default2 = {
+var import_lodash19 = __toESM(require("lodash"), 1);
+var ticket_default = {
   prefix: "/ticket",
   post: {
     "/create": async (request) => {
       const { username } = request.body;
-      request.validate("body.username", import_lodash17.default.isString);
-      const _ticket = await ticket_default.createTicket({
+      request.validate("body.username", import_lodash19.default.isString);
+      const _ticket = await auth_default.createTicket({
         username,
         ipAddress: request.remoteIP
       });
@@ -1443,7 +1770,7 @@ var ticket_default2 = {
 // src/api/routes/index.ts
 var routes_default = [
   conversation_default2,
-  ticket_default2
+  ticket_default
 ];
 
 // src/index.ts
