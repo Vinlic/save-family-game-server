@@ -14,13 +14,13 @@ class Environment {
     /** 环境变量 */
     envVars: any;
     /** 环境名称 */
-    env: string;
+    env?: string;
     /** 服务名称 */
-    name: string;
+    name?: string;
     /** 服务地址 */
-    host: string;
+    host?: string;
     /** 服务端口 */
-    port: number;
+    port?: number;
     /** 包参数 */
     package: any;
 
@@ -28,10 +28,10 @@ class Environment {
         const { cmdArgs, envVars, package: _package } = options;
         this.cmdArgs = cmdArgs;
         this.envVars = envVars;
-        this.env = _.defaultTo(cmdArgs.env || envVars.GAME_SERVER_ENV, 'dev');
-        this.name = _.defaultTo(cmdArgs.name || envVars.GAME_SERVER_NAME, 'game-server');
-        this.host = _.defaultTo(cmdArgs.host || envVars.GAME_SERVER_HOST, '0.0.0.0');
-        this.port = Number(_.defaultTo(cmdArgs.port || envVars.GAME_SERVER_PORT, 5566));
+        this.env = _.defaultTo(cmdArgs.env || envVars.SERVER_ENV, 'dev');
+        this.name = cmdArgs.name || envVars.SERVER_NAME || undefined;
+        this.host = cmdArgs.host || envVars.SERVER_HOST || undefined;
+        this.port = Number(cmdArgs.port || envVars.SERVER_PORT) ? Number(cmdArgs.port || envVars.SERVER_PORT) : undefined;
         this.package = _package;
     }
 
