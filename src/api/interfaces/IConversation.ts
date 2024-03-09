@@ -7,4 +7,5 @@ export default interface IConversation {
     messages?: IMessage[];
     sceneId: string;
     fromTicketId: string;
+    createTime?: number;
 }

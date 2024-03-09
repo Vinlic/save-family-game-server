@@ -13,6 +13,7 @@ export default class Conversation implements IConversation {
     messages: Message[];
     sceneId: string;
     fromTicketId: string;
+    createTime: number;
 
     constructor(options: IConversation) {
         this.type = options.type;
@@ -21,6 +22,7 @@ export default class Conversation implements IConversation {
         this.messages = _.defaultTo(options.messages, []).map(v => new Message(v));
         this.sceneId = options.sceneId;
         this.fromTicketId = options.fromTicketId;
+        this.createTime = _.defaultTo(options.createTime, util.unixTimestamp());
     }
 
     toCompletionMessages() {

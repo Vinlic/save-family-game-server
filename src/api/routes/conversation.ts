@@ -33,7 +33,7 @@ export default {
             return conv;
         },
 
-        '/:id/completion': async (request: Request) => {
+        '/:id/completions': async (request: Request) => {
             await auth.checkTicket(request);
             request.validate('body.content', _.isString);
             const { content } = request.body;

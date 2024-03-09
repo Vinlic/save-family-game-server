@@ -22,14 +22,13 @@ async function create(options: IConversation) {
   return conv;
 }
 
-async function completion(convId: string, content: string) {
+async function completions(convId: string, content: string) {
   const conv = await query(convId);
-  conv.messages.push(new Message({
-    type: 'self',
-    roleName: '',
-    roleAvatarResId: '',
-    content: '您好'
-  }));
+  // conv.messages.push(new Message({
+  //   role: '',
+  //   roleName: '',
+  //   content
+  // }));
   const messages = conv.toCompletionMessages();
   await chat.completions(messages)
 }
@@ -43,5 +42,5 @@ function getScene(sceneId: string) {
 export default {
   query,
   create,
-  completion,
+  completions
 };

@@ -1,7 +1,10 @@
 export default interface IMessage {
-    type: string;
+    type?: 'text' | 'image' | 'event';
     id?: string;
-    roleAvatarResId: string;
-    roleName: string;
+    role?: 'self' | 'other' | 'liar';
+    roleName?: string;
     content: string;
+    event?: string;
+    timeout?: number;
+    createTime?: number;
 }
