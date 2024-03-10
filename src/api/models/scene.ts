@@ -4,7 +4,7 @@ import type IScene from '@/api/interfaces/IScene.ts';
 import Message from '@/api/models/Message.ts';
 import util from '@/lib/util.ts';
 
-export class Scene {
+export default class Scene {
 
     id: string;
     name: string;

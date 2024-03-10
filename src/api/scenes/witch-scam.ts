@@ -1,4 +1,4 @@
-import { Scene } from '@/api/models/Scene.ts';
+import Scene from '@/api/models/Scene.ts';
 
 class WitchScam extends Scene {
 
