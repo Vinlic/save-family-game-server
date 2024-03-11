@@ -6,7 +6,7 @@ import util from '@/lib/util.ts';
 
 export default class Message implements IMessage {
 
-    type: 'text' | 'image' | 'event';
+    type: 'text' | 'image' | 'event' | 'message';
     id: string;
     role?: 'self' | 'other' | 'liar';
     roleName?: string;
